@@ -147,20 +147,19 @@ import (
     "fmt"
 
     "github.com/nenormalka/freya/conns"
-
-    "github.com/jmoiron/sqlx"
+	
     "go.uber.org/zap"
 )
 
 type (
     Repo struct {
-        db     *sqlx.DB
+        db     connectors.SQLConnector
         logger *zap.Logger
     }
 )
 
-func NewRepo(conns *conns.Conns, logger *zap.Logger) (*Repo, error) {
-	db, err := conns.GetDB()
+func NewRepo(c *conns.Conns, logger *zap.Logger) (*Repo, error) {
+	db, err := c.GetSQLConn()
 	if err != nil {
 		return nil, fmt.Errorf("create repo err: %w", err)
 	}
@@ -197,33 +196,3 @@ func NewRepo(conns *conns.Conns, logger *zap.Logger) (*Repo, error) {
 слове и чёрной магии.
 
 </p>
-
-### Переход на версию v1.0.0
-Да-да, я сломал обратную совместимость, соррян. Но всё можно быстро поправить. 
-Надо всего лишь, старым дедовским способом...
-
-Карач, в мейновом файле надо изменить инициализацию.
-
-Было так:
-```go
-var Module = types.Module{}
-func main() {
-    box := freya.NewBox(Module)
-    
-    application := freya.NewEngine(box)
-    
-    application.Run()	
-}
-```
-
-Стало так:
-```go
-var Module = types.Module{}
-func main() {
-    application := freya.NewEngine(Module)
-    
-    application.Run()	
-}
-```
-
-Ииии всё. Можно пользоваться дальше.
