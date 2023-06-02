@@ -81,16 +81,12 @@ func (s *Server) Start(ctx context.Context) error {
 		listener, err := net.Listen("tcp", s.cfg.ListenAddr)
 		if err != nil {
 			s.logger.Error("create grpc listener err", zap.Error(err))
-			if errCh != nil {
-				errCh <- err
-			}
+			errCh <- err
 		}
 
 		if err = s.server.Serve(listener); err != nil {
 			s.logger.Error("grpc server err", zap.Error(err))
-			if errCh != nil {
-				errCh <- err
-			}
+			errCh <- err
 		}
 	})
 }
