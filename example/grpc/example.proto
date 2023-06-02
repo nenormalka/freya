@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package example_service;
+
+option go_package = "./example_service;example_service";
+
+message Empty {}
+
+service ExampleService {
+  rpc GetTest(Empty) returns (Empty);
+}
