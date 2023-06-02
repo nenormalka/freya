@@ -40,8 +40,8 @@ var defaultModules = types.Module{
 	{CreateFunc: types.NewServerPool},
 	{CreateFunc: NewShutdownContext},
 	{CreateFunc: logger.NewLogger},
-	{CreateFunc: config.NewConfig},
 }.
+	Append(config.Module).
 	Append(http.Module).
 	Append(grpc.Module).
 	Append(apm.Module).

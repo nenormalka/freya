@@ -1,6 +1,7 @@
 package main
 
 import (
+	exampleconfig "github.com/nenormalka/freya/example/config"
 	grpc "github.com/nenormalka/freya/example/grpc"
 	"github.com/nenormalka/freya/example/http"
 	"github.com/nenormalka/freya/example/repo"
@@ -19,6 +20,7 @@ var Module = types.Module{
 	}},
 	{CreateFunc: repo.NewRepo},
 }.
+	Append(exampleconfig.Module).
 	Append(grpc.Module).
 	Append(service.Module).
 	Append(http.Module)

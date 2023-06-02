@@ -1,0 +1,22 @@
+version: 3
+
+env: development
+log_level: info
+app_name: example-service
+debug_log: true
+
+grpc:
+  listen_addr: :9090
+  keepalive_time: 30s
+  keepalive_timeout: 10s
+  register_reflection_server: true
+
+http:
+  listen_addr: :8080
+  keepalive_time: 30s
+  keepalive_timeout: 10s
+
+postgres:
+  dsn: postgresql://postgres:example@127.0.0.1:5432
+  max_open_connections: 10
+  conn_max_lifetime: 5m
