@@ -27,7 +27,7 @@ type (
 		ReleaseID string
 		Env       string `envconfig:"ENV" default:"development" required:"true" yaml:"env"`
 		LogLevel  string `envconfig:"LOG_LEVEL" default:"info" yaml:"log_level"`
-		AppName   string `envconfig:"APP_NAME" required:"true" yaml:"app_name"`
+		AppName   string `envconfig:"APP_NAME" yaml:"app_name"`
 
 		// DebugLog включает/выключает полные логи ответов (response payload).
 		DebugLog bool `envconfig:"DEBUG_LOG" default:"false" yaml:"debug_log"`
@@ -46,22 +46,22 @@ type (
 	}
 
 	GRPCServerConfig struct {
-		ListenAddr               string        `envconfig:"GRPC_LISTEN_ADDR" required:"true" yaml:"listen_addr"`
+		ListenAddr               string        `envconfig:"GRPC_LISTEN_ADDR" required:"true" default:":9090" yaml:"listen_addr"`
 		KeepaliveTime            time.Duration `envconfig:"GRPC_KEEPALIVE_TIME" default:"30s" yaml:"keepalive_time"`
 		KeepaliveTimeout         time.Duration `envconfig:"GRPC_KEEPALIVE_TIMEOUT" default:"10s" yaml:"keepalive_timeout"`
 		RegisterReflectionServer bool          `envconfig:"GRPC_REGISTER_REFLECTION_SERVER" default:"true" yaml:"register_reflection_server"`
 	}
 
 	HTTPServerConfig struct {
-		ListenAddr       string        `envconfig:"HTTP_LISTEN_ADDR" required:"true" yaml:"listen_addr"`
+		ListenAddr       string        `envconfig:"HTTP_LISTEN_ADDR" required:"true" default:":8080" yaml:"listen_addr"`
 		KeepaliveTime    time.Duration `envconfig:"HTTP_KEEPALIVE_TIME" default:"30s" yaml:"keepalive_time"`
 		KeepaliveTimeout time.Duration `envconfig:"HTTP_KEEPALIVE_TIMEOUT" default:"10s" yaml:"keepalive_timeout"`
 	}
 
 	ElasticAPMConfig struct {
-		ServiceName string `envconfig:"ELASTIC_APM_SERVICE_NAME" required:"true" yaml:"service_name"`
-		ServerURL   string `envconfig:"ELASTIC_APM_SERVER_URL" required:"true" yaml:"server_url"`
-		Environment string `envconfig:"ELASTIC_APM_ENVIRONMENT" required:"true" yaml:"environment"`
+		ServiceName string `envconfig:"ELASTIC_APM_SERVICE_NAME" yaml:"service_name"`
+		ServerURL   string `envconfig:"ELASTIC_APM_SERVER_URL" yaml:"server_url"`
+		Environment string `envconfig:"ELASTIC_APM_ENVIRONMENT" yaml:"environment"`
 	}
 
 	PostgresConfig struct {

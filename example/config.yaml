@@ -6,13 +6,13 @@ app_name: example-service
 debug_log: true
 
 grpc:
-  listen_addr: :9090
+  listen_addr: :7070
   keepalive_time: 30s
   keepalive_timeout: 10s
   register_reflection_server: true
 
 http:
-  listen_addr: :8080
+  listen_addr: :6060
   keepalive_time: 30s
   keepalive_timeout: 10s
 
