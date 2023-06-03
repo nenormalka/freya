@@ -22,7 +22,7 @@ const (
 )
 
 func NewRepo(conns *conns.Conns, logger *zap.Logger) (*Repo, error) {
-	db, err := conns.GetSQLConn()
+	db, err := conns.GetSQLConnByName("master")
 	if err != nil {
 		return nil, fmt.Errorf("create repo err: %w", err)
 	}

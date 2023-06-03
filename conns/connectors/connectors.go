@@ -35,3 +35,7 @@ type (
 		) error
 	}
 )
+
+const (
+	DefaultDBConn = "master"
+)

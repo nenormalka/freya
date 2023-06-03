@@ -157,7 +157,7 @@ type (
 )
 
 func NewRepo(c *conns.Conns, logger *zap.Logger) (*Repo, error) {
-	db, err := c.GetSQLConn()
+	db, err := c.GetSQLConnByName("db")
 	if err != nil {
 		return nil, fmt.Errorf("create repo err: %w", err)
 	}

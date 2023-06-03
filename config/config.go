@@ -5,10 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	"gopkg.in/yaml.v3"
+
+	"github.com/nenormalka/freya/conns/connectors"
 )
 
 type (
@@ -20,7 +23,7 @@ type (
 		HTTP          HTTPServerConfig `yaml:"http"`
 		GRPC          GRPCServerConfig `yaml:"grpc"`
 		APM           ElasticAPMConfig `yaml:"apm"`
-		Postgres      PostgresConfig   `yaml:"postgres"`
+		DB            []DB             `yaml:"db"`
 		ElasticSearch ElasticSearch    `yaml:"elastic_search"`
 		Sentry        Sentry           `yaml:"sentry"`
 
@@ -64,16 +67,19 @@ type (
 		Environment string `envconfig:"ELASTIC_APM_ENVIRONMENT" yaml:"environment"`
 	}
 
-	PostgresConfig struct {
-		DSN                string        `envconfig:"DB_DSN" yaml:"dsn"`
-		MaxOpenConnections int           `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"25" required:"true" yaml:"max_open_connections"`
-		MaxIdleConnections int           `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"25" required:"true" yaml:"max_idle_connections"`
-		ConnMaxLifetime    time.Duration `envconfig:"DB_CONN_MAX_LIFETIME" default:"5m" required:"true" yaml:"conn_max_lifetime"`
+	DB struct {
+		DSN                string        `yaml:"dsn"`
+		Name               string        `yaml:"name"`
+		MaxOpenConnections int           `yaml:"max_open_connections"`
+		MaxIdleConnections int           `yaml:"max_idle_connections"`
+		ConnMaxLifetime    time.Duration `yaml:"conn_max_lifetime"`
 	}
 )
 
 const (
 	yamlPathConfig = "CONFIG_YAML_FILE"
+	defaultDBDSN   = "DB_DSN"
+	connsDBDefault = 25
 )
 
 var (
@@ -147,9 +153,42 @@ func loadYAML(cfg *Config) error {
 }
 
 func loadENV(cfg *Config) error {
-	if err := envconfig.Process("", cfg); err != nil {
+	err := envconfig.Process("", cfg)
+	if err != nil {
 		return fmt.Errorf("parse env config err %w", err)
 	}
 
+	cfg.DB = getDBConnsENV()
+
 	return nil
+}
+
+func getDBConnsENV() []DB {
+	var dbConns []DB
+
+	for _, pair := range os.Environ() {
+		if !strings.HasPrefix(pair, defaultDBDSN) {
+			continue
+		}
+
+		parts := strings.SplitN(pair, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		name := connectors.DefaultDBConn
+		if parts[0] != defaultDBDSN {
+			name = strings.ToLower(strings.TrimPrefix(parts[0], defaultDBDSN+"_"))
+		}
+
+		dbConns = append(dbConns, DB{
+			DSN:                parts[1],
+			Name:               name,
+			MaxOpenConnections: connsDBDefault,
+			MaxIdleConnections: connsDBDefault,
+			ConnMaxLifetime:    time.Minute * 5,
+		})
+	}
+
+	return dbConns
 }

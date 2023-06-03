@@ -25,12 +25,14 @@ type (
 	}
 )
 
-func NewGoQuConnector(db *sqlx.DB, logger *zap.Logger, cfg *config.Config) connectors.GoQuConnector {
-	return &GoQuConn{
-		db:      db,
-		logger:  logger,
-		appName: cfg.AppName,
-	}
+func NewGoQuConnector(poolDB map[string]*sqlx.DB, logger *zap.Logger, cfg *config.Config) map[string]connectors.GoQuConnector {
+	return newConns[connectors.GoQuConnector](poolDB, func(nameConn string) connectors.GoQuConnector {
+		return &GoQuConn{
+			db:      poolDB[nameConn],
+			logger:  logger,
+			appName: cfg.AppName,
+		}
+	})
 }
 
 func (s *GoQuConn) CallContext(

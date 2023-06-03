@@ -16,7 +16,14 @@ http:
   keepalive_time: 30s
   keepalive_timeout: 10s
 
-postgres:
-  dsn: postgresql://postgres:example@127.0.0.1:5432
-  max_open_connections: 10
-  conn_max_lifetime: 5m
+db:
+ -  dsn: postgresql://postgres:example@127.0.0.1:5432
+    max_open_connections: 10
+    max_idle_connections: 10
+    conn_max_lifetime: 5m
+    name: master
+ -  dsn: postgresql://postgres:example@127.0.0.1:5432
+    max_open_connections: 10
+    max_idle_connections: 10
+    conn_max_lifetime: 5m
+    name: slave

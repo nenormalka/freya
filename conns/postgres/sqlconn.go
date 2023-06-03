@@ -20,12 +20,14 @@ type (
 	}
 )
 
-func NewSQLConnector(db *sqlx.DB, logger *zap.Logger, cfg *config.Config) connectors.SQLConnector {
-	return &SQLConn{
-		db:      db,
-		logger:  logger,
-		appName: cfg.AppName,
-	}
+func NewSQLConnector(poolDB map[string]*sqlx.DB, logger *zap.Logger, cfg *config.Config) map[string]connectors.SQLConnector {
+	return newConns[connectors.SQLConnector](poolDB, func(nameConn string) connectors.SQLConnector {
+		return &SQLConn{
+			db:      poolDB[nameConn],
+			logger:  logger,
+			appName: cfg.AppName,
+		}
+	})
 }
 
 func (s *SQLConn) CallContext(

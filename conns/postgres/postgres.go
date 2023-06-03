@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/dlmiddlecote/sqlstats"
-	"github.com/jackc/pgx/v4"
 	"github.com/jmoiron/sqlx"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.elastic.co/apm/module/apmsql/v2"
@@ -16,12 +15,27 @@ const (
 	driverName = "pgx"
 )
 
-func NewPostgres(config PostgresConfig) (*sqlx.DB, error) {
-	if config.DSN == "" {
+func NewPostgres(config PostgresConfig) (map[string]*sqlx.DB, error) {
+	if len(config.Configs) == 0 {
 		return nil, nil
 	}
 
-	db, err := apmsql.Open(driverName, config.DSN)
+	m := make(map[string]*sqlx.DB, len(config.Configs))
+
+	for i := range config.Configs {
+		db, err := newDb(config.Configs[i])
+		if err != nil {
+			return nil, fmt.Errorf("new db err: %w", err)
+		}
+
+		m[config.Configs[i].Name] = db
+	}
+
+	return m, nil
+}
+
+func newDb(cfg DBConfig) (*sqlx.DB, error) {
+	db, err := apmsql.Open(driverName, cfg.DSN)
 	if err != nil {
 		return nil, fmt.Errorf("open apmsql err: %w", err)
 	}
@@ -36,16 +50,11 @@ func NewPostgres(config PostgresConfig) (*sqlx.DB, error) {
 		}
 	}()
 
-	db.SetMaxOpenConns(config.MaxOpenConnections)
-	db.SetMaxIdleConns(config.MaxIdleConnections)
-	db.SetConnMaxLifetime(config.ConnMaxLifetime)
+	db.SetMaxOpenConns(cfg.MaxOpenConnections)
+	db.SetMaxIdleConns(cfg.MaxIdleConnections)
+	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
-	cfg, err := pgx.ParseConfig(config.DSN)
-	if err != nil {
-		return nil, err
-	}
-
-	collector := sqlstats.NewStatsCollector(cfg.Database, db)
+	collector := sqlstats.NewStatsCollector(cfg.Name, db)
 	if err = prometheus.Register(collector); err != nil && !errors.As(err, &prometheus.AlreadyRegisteredError{}) {
 		return nil, err
 	}
@@ -55,4 +64,18 @@ func NewPostgres(config PostgresConfig) (*sqlx.DB, error) {
 	}
 
 	return sqlx.NewDb(db, driverName), nil
+}
+
+func newConns[T any](poolDB map[string]*sqlx.DB, f func(nameConn string) T) map[string]T {
+	if len(poolDB) == 0 {
+		return nil
+	}
+
+	m := make(map[string]T, len(poolDB))
+
+	for i := range poolDB {
+		m[i] = f(i)
+	}
+
+	return m
 }

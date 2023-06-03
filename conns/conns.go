@@ -11,60 +11,53 @@ import (
 
 type (
 	Conns struct {
-		postgres *sqlx.DB
-		elastic  *elasticsearch.Client
-		logger   *zap.Logger
-		sqlConn  connectors.SQLConnector
-		goquConn connectors.GoQuConnector
+		elastic   *elasticsearch.Client
+		logger    *zap.Logger
+		poolDB    map[string]*sqlx.DB
+		sqlConns  map[string]connectors.SQLConnector
+		goquConns map[string]connectors.GoQuConnector
 	}
 )
 
 var (
-	errEmptyDBConn      = errors.New("empty db connection")
-	errEmptySQLConn     = errors.New("empty sql connection")
 	errEmptyElasticConn = errors.New("empty elastic connection")
+	errEmptyPool        = errors.New("empty pool")
+	errEmptyConn        = errors.New("empty connection")
 )
 
 func NewConns(
-	postgres *sqlx.DB,
-	elastic *elasticsearch.Client,
 	logger *zap.Logger,
-	sqlConn connectors.SQLConnector,
-	goquConn connectors.GoQuConnector,
+	elastic *elasticsearch.Client,
+	poolDB map[string]*sqlx.DB,
+	sqlConns map[string]connectors.SQLConnector,
+	goquConns map[string]connectors.GoQuConnector,
 ) *Conns {
 	return &Conns{
-		postgres: postgres,
-		elastic:  elastic,
-		logger:   logger,
-		sqlConn:  sqlConn,
-		goquConn: goquConn,
+		logger:    logger,
+		elastic:   elastic,
+		poolDB:    poolDB,
+		sqlConns:  sqlConns,
+		goquConns: goquConns,
 	}
 }
 
-// Deprecated: Use GetSQLConn
+// Deprecated: Use GetSQLConnByName instead
 func (c *Conns) GetDB() (*sqlx.DB, error) {
-	if c.postgres == nil {
-		return nil, errEmptyDBConn
-	}
-
-	return c.postgres, nil
+	return getConn[*sqlx.DB](c.poolDB, connectors.DefaultDBConn)
 }
 
+// Deprecated: Use GetSQLConnByName instead
 func (c *Conns) GetSQLConn() (connectors.SQLConnector, error) {
-	if c.sqlConn == nil {
-		return nil, errEmptySQLConn
-	}
+	return c.GetSQLConnByName(connectors.DefaultDBConn)
+}
 
-	return c.sqlConn, nil
+func (c *Conns) GetSQLConnByName(nameConn string) (connectors.SQLConnector, error) {
+	return getConn[connectors.SQLConnector](c.sqlConns, nameConn)
 }
 
 // GetGoQuConn создает слой sql-builder'а для конструирования запросов в БД. Также он умеет делать scan в структуры
-func (c *Conns) GetGoQuConn() (connectors.GoQuConnector, error) {
-	if c.goquConn == nil {
-		return nil, errEmptyDBConn
-	}
-
-	return c.goquConn, nil
+func (c *Conns) GetGoQuConn(nameConn string) (connectors.GoQuConnector, error) {
+	return getConn[connectors.GoQuConnector](c.goquConns, nameConn)
 }
 
 func (c *Conns) GetElastic() (*elasticsearch.Client, error) {
@@ -78,13 +71,27 @@ func (c *Conns) GetElastic() (*elasticsearch.Client, error) {
 func (c *Conns) Close() {
 	c.logger.Info("stopping connections")
 
-	if c.postgres != nil {
-		c.logger.Info("stop postgres")
-
-		if err := c.postgres.Close(); err != nil {
-			c.logger.Error("postgres stopping err", zap.Error(err))
+	c.logger.Info("stop postgres")
+	for i := range c.poolDB {
+		if err := c.poolDB[i].Close(); err != nil {
+			c.logger.Error("db stopping err", zap.Error(err))
 		}
 	}
 
 	// stop other connections
+}
+
+func getConn[T any](m map[string]T, name string) (T, error) {
+	var t T
+
+	if len(m) == 0 {
+		return t, errEmptyPool
+	}
+
+	if conn, ok := m[name]; ok {
+		return conn, nil
+
+	}
+
+	return t, errEmptyConn
 }
