@@ -70,7 +70,9 @@ func (s *Server) Start(ctx context.Context) error {
 	return types.StartServerWithWaiting(ctx, func(errCh chan error) {
 		if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			s.logger.Error("http server err", zap.Error(err))
-			errCh <- err
+			if errCh != nil {
+				errCh <- err
+			}
 		}
 	})
 }
