@@ -14,7 +14,7 @@ import (
 type (
 	ReleaseID string
 
-	Configurator func(cfg *Config) error
+	Configure func(cfg *Config) error
 
 	Config struct {
 		HTTP          HTTPServerConfig `yaml:"http"`
@@ -84,12 +84,12 @@ var (
 	errConfigFileNotExists = errors.New("config file not exists")
 )
 
-func NewConfig(configurators []Configurator, releaseID ReleaseID) (*Config, error) {
+func NewConfig(configurators []Configure, releaseID ReleaseID) (*Config, error) {
 	cfg := &Config{}
 	cfg.ReleaseID = string(releaseID)
 
-	for _, loader := range configurators {
-		if err := loader(cfg); err != nil {
+	for _, configurator := range configurators {
+		if err := configurator(cfg); err != nil {
 			return nil, fmt.Errorf("create config err %w", err)
 		}
 	}
@@ -100,16 +100,27 @@ func NewConfig(configurators []Configurator, releaseID ReleaseID) (*Config, erro
 func loadYAML(cfg *Config) error {
 	filename := ""
 
-	envPath := os.Getenv(yamlPathConfig)
+	for _, f := range []func(){
+		func() {
+			envPath := os.Getenv(yamlPathConfig)
 
-	if envPath != "" {
-		filename = envPath
-	}
+			if envPath != "" {
+				filename = envPath
+			}
+		},
+		func() {
+			flag.Parse()
 
-	flag.Parse()
+			if *flagConfig != "" {
+				filename = *flagConfig
+			}
+		},
+	} {
+		f()
 
-	if *flagConfig != "" {
-		filename = *flagConfig
+		if filename != "" {
+			break
+		}
 	}
 
 	if filename == "" {

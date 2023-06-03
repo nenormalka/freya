@@ -27,6 +27,7 @@ require (
 	go.uber.org/zap v1.23.0
 	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.28.1
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -66,6 +67,5 @@ require (
 	golang.org/x/tools v0.6.0 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 	google.golang.org/grpc/examples v0.0.0-20221116180207-817c1e8c417e // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	howett.net/plist v1.0.0 // indirect
 )

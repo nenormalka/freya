@@ -49,11 +49,9 @@ var Module = types.Module{
     Append(service.Module)
 
 func main() {
-    box := freya.NewBox(Module)
-    
-    application := freya.NewEngine(box)
-    
-    application.Run()	
+	freya.
+		NewEngine(Module).
+		Run()
 }
 ```
 

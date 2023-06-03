@@ -15,12 +15,12 @@ type (
 	ConfigAdapterIn struct {
 		dig.In
 
-		CustomConfigurators []Configurator `group:"configurators"`
+		CustomConfigurators []Configure `group:"configurators"`
 	}
 )
 
-func ConfigAdapter(in ConfigAdapterIn) []Configurator {
-	loaders := []Configurator{
+func ConfigAdapter(in ConfigAdapterIn) []Configure {
+	loaders := []Configure{
 		loadENV,
 		loadYAML,
 	}

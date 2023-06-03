@@ -23,7 +23,7 @@ func NewPostgres(config PostgresConfig) (*sqlx.DB, error) {
 
 	db, err := apmsql.Open(driverName, config.DSN)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open apmsql err: %w", err)
 	}
 
 	defer func() {

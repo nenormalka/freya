@@ -51,23 +51,23 @@ var (
 )
 
 func GetAppVersion(ctx context.Context) (string, error) {
-	return getDataFromCtx(ctx, AppInfoFieldAppVersion)
+	return GetDataFromCtx(ctx, AppInfoFieldAppVersion)
 }
 
 func GetPlatform(ctx context.Context) (string, error) {
-	return getDataFromCtx(ctx, AppInfoFieldPlatform)
+	return GetDataFromCtx(ctx, AppInfoFieldPlatform)
 }
 
 func GetPlatformOS(ctx context.Context) (string, error) {
-	return getDataFromCtx(ctx, AppInfoFieldPlatformOSVersion)
+	return GetDataFromCtx(ctx, AppInfoFieldPlatformOSVersion)
 }
 
 func GetBuild(ctx context.Context) (string, error) {
-	return getDataFromCtx(ctx, AppInfoFieldBuild)
+	return GetDataFromCtx(ctx, AppInfoFieldBuild)
 }
 
 func GetCustomKey(ctx context.Context, key string) (string, error) {
-	return getDataFromCtx(ctx, key)
+	return GetDataFromCtx(ctx, key)
 }
 
 func CompareVersions(ctx context.Context, vd VersionData) (Ratio, error) {
@@ -99,7 +99,7 @@ func CompareVersions(ctx context.Context, vd VersionData) (Ratio, error) {
 	return Ratio(contextVersion.Compare(conditionVersion)), nil
 }
 
-func getDataFromCtx(ctx context.Context, key string) (string, error) {
+func GetDataFromCtx(ctx context.Context, key string) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return "", ErrEmptyMetadata

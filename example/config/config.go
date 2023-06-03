@@ -17,7 +17,7 @@ type (
 	AdapterOut struct {
 		dig.Out
 
-		Configurator config.Configurator `group:"configurators"`
+		Configurator config.Configure `group:"configurators"`
 	}
 )
 
