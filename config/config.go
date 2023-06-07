@@ -77,9 +77,10 @@ type (
 )
 
 const (
-	yamlPathConfig = "CONFIG_YAML_FILE"
-	defaultDBDSN   = "DB_DSN"
-	connsDBDefault = 25
+	yamlPathConfig       = "CONFIG_YAML_FILE"
+	defaultDBDSN         = "DB_DSN"
+	maxOpenConnectionsDB = 25
+	maxIdleConnectionsDB = 5
 )
 
 var (
@@ -184,8 +185,8 @@ func getDBConnsENV() []DB {
 		dbConns = append(dbConns, DB{
 			DSN:                parts[1],
 			Name:               name,
-			MaxOpenConnections: connsDBDefault,
-			MaxIdleConnections: connsDBDefault,
+			MaxOpenConnections: maxOpenConnectionsDB,
+			MaxIdleConnections: maxIdleConnectionsDB,
 			ConnMaxLifetime:    time.Minute * 5,
 		})
 	}
