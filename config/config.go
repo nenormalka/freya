@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -164,8 +165,25 @@ func loadENV(cfg *Config) error {
 	return nil
 }
 
+func getEnvParam(param string, defaultValue int) int {
+	envParam := os.Getenv(param)
+	if envParam == "" {
+		return defaultValue
+	}
+
+	value, err := strconv.Atoi(envParam)
+	if err != nil {
+		return defaultValue
+	}
+
+	return value
+}
+
 func getDBConnsENV() []DB {
 	var dbConns []DB
+
+	maxOpenConnections := getEnvParam("DB_MAX_OPEN_CONNECTIONS", maxOpenConnectionsDB)
+	maxIdleConnections := getEnvParam("DB_MAX_IDLE_CONNECTIONS", maxIdleConnectionsDB)
 
 	for _, pair := range os.Environ() {
 		if !strings.HasPrefix(pair, defaultDBDSN) {
@@ -185,8 +203,8 @@ func getDBConnsENV() []DB {
 		dbConns = append(dbConns, DB{
 			DSN:                parts[1],
 			Name:               name,
-			MaxOpenConnections: maxOpenConnectionsDB,
-			MaxIdleConnections: maxIdleConnectionsDB,
+			MaxOpenConnections: maxOpenConnections,
+			MaxIdleConnections: maxIdleConnections,
 			ConnMaxLifetime:    time.Minute * 5,
 		})
 	}
