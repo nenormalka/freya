@@ -1,13 +1,11 @@
 package postrgres
 
 import (
-	"errors"
 	"fmt"
 	"github.com/nenormalka/freya/conns/connectors"
+	"github.com/nenormalka/freya/conns/postgres/collector"
 
-	"github.com/dlmiddlecote/sqlstats"
 	"github.com/jmoiron/sqlx"
-	"github.com/prometheus/client_golang/prometheus"
 	"go.elastic.co/apm/module/apmsql/v2"
 	_ "go.elastic.co/apm/module/apmsql/v2/pgxv4"
 )
@@ -59,9 +57,8 @@ func newDb(cfg DBConfig) (*sqlx.DB, error) {
 	db.SetMaxIdleConns(cfg.MaxIdleConnections)
 	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
-	collector := sqlstats.NewStatsCollector(cfg.Name, db)
-	if err = prometheus.Register(collector); err != nil && !errors.As(err, &prometheus.AlreadyRegisteredError{}) {
-		return nil, fmt.Errorf("register db sqlstats err: %w", err)
+	if err = collector.CollectDBStats(cfg.Name, db); err != nil {
+		return nil, fmt.Errorf("failed to collect db stats: %w", err)
 	}
 
 	if err = db.Ping(); err != nil {

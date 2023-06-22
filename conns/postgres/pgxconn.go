@@ -3,19 +3,17 @@ package postrgres
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/nenormalka/freya/conns/connectors"
+	"github.com/nenormalka/freya/conns/postgres/collector"
 	dbtypes "github.com/nenormalka/freya/conns/postgres/types"
 	"github.com/nenormalka/freya/types"
 
 	"github.com/nenormalka/freya/config"
 
-	"github.com/dlmiddlecote/sqlstats"
 	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -45,9 +43,8 @@ func NewPGXPoolConn(
 			appName: cfg.AppName,
 		}
 
-		collector := sqlstats.NewStatsCollector(i, conn)
-		if err := prometheus.Register(collector); err != nil && !errors.As(err, &prometheus.AlreadyRegisteredError{}) {
-			return nil, fmt.Errorf("register pgx sqlstats err: %w", err)
+		if err := collector.CollectDBStats(i, conn); err != nil {
+			return nil, fmt.Errorf("failed to collect db stats: %w", err)
 		}
 
 		pools[i] = conn
