@@ -85,7 +85,7 @@ func (c *Conns) GetElastic() (*elasticsearch.Client, error) {
 func (c *Conns) Close() {
 	c.logger.Info("stopping connections")
 
-	if len(c.sqlxPoolDB) > 0 {
+	if len(c.sqlxPoolDB) != 0 {
 		c.logger.Info("stop sqlx connections")
 		for i := range c.sqlxPoolDB {
 			if err := c.sqlxPoolDB[i].Close(); err != nil {
