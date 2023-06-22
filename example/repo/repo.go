@@ -7,6 +7,7 @@ import (
 	"github.com/nenormalka/freya/conns/connectors"
 	dbtypes "github.com/nenormalka/freya/conns/postgres/types"
 	"go.uber.org/zap"
+	"time"
 )
 
 type (
@@ -33,7 +34,7 @@ func NewRepo(conns *conns.Conns, logger *zap.Logger) (*Repo, error) {
 }
 
 func (r *Repo) GetNow(ctx context.Context) (string, error) {
-	now := ""
+	var now time.Time
 
 	if err := r.db.CallContext(ctx, "get_now", func(ctx context.Context, db dbtypes.PgxConn) error {
 		if err := db.QueryRow(ctx, selectNowSQL).Scan(&now); err != nil {
@@ -45,5 +46,5 @@ func (r *Repo) GetNow(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("failed for get now: %w", err)
 	}
 
-	return now, nil
+	return now.String(), nil
 }
