@@ -11,6 +11,8 @@ import (
 	grpcctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	sentry "github.com/johnbellone/grpc-middleware-sentry"
+	"go.elastic.co/apm/module/apmgrpc/v2"
+	"go.elastic.co/apm/v2"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

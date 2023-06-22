@@ -6,7 +6,6 @@ import (
 	"github.com/nenormalka/freya/conns/postgres/types"
 
 	"github.com/doug-martin/goqu/v9"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -16,7 +15,7 @@ type (
 	}
 
 	ConnectTx interface {
-		*sqlx.Tx | *goqu.TxDatabase | *pgxpool.Tx
+		*sqlx.Tx | *goqu.TxDatabase | types.PgxTx
 	}
 
 	DBConnector[T ConnectDB, M ConnectTx] interface {

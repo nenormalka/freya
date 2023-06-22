@@ -20,8 +20,11 @@ require (
 	github.com/johnbellone/grpc-middleware-sentry v0.3.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/nenormalka/lilith v1.0.5
 	github.com/prometheus/client_golang v1.16.0
 	github.com/stretchr/testify v1.8.4
+	go.elastic.co/apm/module/apmelasticsearch/v2 v2.4.3
+	go.elastic.co/apm/module/apmgrpc/v2 v2.4.3
 	go.elastic.co/apm/module/apmpgx/v2 v2.4.3
 	go.elastic.co/apm/module/apmsql/v2 v2.4.3
 	go.elastic.co/apm/v2 v2.4.3
@@ -55,13 +58,16 @@ require (
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
+	go.elastic.co/apm/module/apmhttp/v2 v2.4.3 // indirect
 	go.elastic.co/fastjson v1.1.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
+	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
-	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19 // indirect
+	google.golang.org/grpc/examples v0.0.0-20230620210430-dd350d02da45 // indirect
 	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
 )

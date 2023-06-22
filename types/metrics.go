@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/jackc/pgx/v4"
+	lilith "github.com/nenormalka/lilith/methods"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -54,12 +56,12 @@ func WithSQLMetrics(
 	var err error
 	defer func(start time.Time) {
 		DBMetrics.
-			WithLabelValues(queryName, serviceName, errLabel(err)).
+			WithLabelValues(queryName, serviceName, lilith.Ternary(isError(err), "true", "false")).
 			Observe(time.Since(start).Seconds())
 	}(time.Now())
 
 	err = callFunc()
-	if err != nil {
+	if isError(err) {
 		DBErrorMetrics.
 			With(prometheus.Labels{
 				"query_name": queryName,
@@ -70,11 +72,11 @@ func WithSQLMetrics(
 	return err
 }
 
-func errLabel(err error) string {
+func isError(err error) bool {
 	switch err {
-	case sql.ErrNoRows, nil:
-		return "false"
+	case sql.ErrNoRows, pgx.ErrNoRows, nil:
+		return false
 	default:
-		return "true"
+		return true
 	}
 }

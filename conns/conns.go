@@ -4,8 +4,10 @@ import (
 	"errors"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/jmoiron/sqlx"
 	"github.com/nenormalka/freya/conns/connectors"
+	dbtypes "github.com/nenormalka/freya/conns/postgres/types"
 	"go.uber.org/zap"
 )
 
@@ -14,8 +16,10 @@ type (
 		elastic   *elasticsearch.Client
 		logger    *zap.Logger
 		poolDB    map[string]*sqlx.DB
+		pgxPoolDB map[string]*pgxpool.Pool
 		sqlConns  map[string]connectors.DBConnector[*sqlx.DB, *sqlx.Tx]
 		goquConns map[string]connectors.DBConnector[*goqu.Database, *goqu.TxDatabase]
+		pgxConns  map[string]connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx]
 	}
 )
 
@@ -29,8 +33,10 @@ func NewConns(
 	logger *zap.Logger,
 	elastic *elasticsearch.Client,
 	poolDB map[string]*sqlx.DB,
+	pgxPoolDB map[string]*pgxpool.Pool,
 	sqlConns map[string]connectors.DBConnector[*sqlx.DB, *sqlx.Tx],
 	goquConns map[string]connectors.DBConnector[*goqu.Database, *goqu.TxDatabase],
+	pgxConns map[string]connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx],
 ) *Conns {
 	return &Conns{
 		logger:    logger,
@@ -38,6 +44,8 @@ func NewConns(
 		poolDB:    poolDB,
 		sqlConns:  sqlConns,
 		goquConns: goquConns,
+		pgxConns:  pgxConns,
+		pgxPoolDB: pgxPoolDB,
 	}
 }
 
@@ -53,6 +61,10 @@ func (c *Conns) GetSQLConn() (connectors.DBConnector[*sqlx.DB, *sqlx.Tx], error)
 
 func (c *Conns) GetSQLConnByName(nameConn string) (connectors.DBConnector[*sqlx.DB, *sqlx.Tx], error) {
 	return getConn[connectors.DBConnector[*sqlx.DB, *sqlx.Tx]](c.sqlConns, nameConn)
+}
+
+func (c *Conns) GetPGXConnByName(nameConn string) (connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx], error) {
+	return getConn[connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx]](c.pgxConns, nameConn)
 }
 
 // GetGoQuConn создает слой sql-builder'а для конструирования запросов в БД. Также он умеет делать scan в структуры
@@ -71,10 +83,19 @@ func (c *Conns) GetElastic() (*elasticsearch.Client, error) {
 func (c *Conns) Close() {
 	c.logger.Info("stopping connections")
 
-	c.logger.Info("stop postgres")
-	for i := range c.poolDB {
-		if err := c.poolDB[i].Close(); err != nil {
-			c.logger.Error("db stopping err", zap.Error(err))
+	if len(c.poolDB) > 0 {
+		c.logger.Info("stop sqlx connections")
+		for i := range c.poolDB {
+			if err := c.poolDB[i].Close(); err != nil {
+				c.logger.Error("db stopping err", zap.Error(err))
+			}
+		}
+	}
+
+	if len(c.pgxPoolDB) != 0 {
+		c.logger.Info("stop pgx connections")
+		for i := range c.pgxPoolDB {
+			c.pgxPoolDB[i].Close()
 		}
 	}
 

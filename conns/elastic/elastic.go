@@ -8,6 +8,8 @@ import (
 	"time"
 
 	estransport "github.com/elastic/elastic-transport-go/v8/elastictransport"
+	"github.com/elastic/go-elasticsearch/v8"
+	"go.elastic.co/apm/module/apmelasticsearch/v2"
 )
 
 func NewElastic(cfg Config) (*elasticsearch.Client, error) {
