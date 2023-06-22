@@ -2,7 +2,7 @@ package conns
 
 import (
 	"errors"
-
+	"github.com/doug-martin/goqu/v9"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/jmoiron/sqlx"
 	"github.com/nenormalka/freya/conns/connectors"
@@ -14,8 +14,8 @@ type (
 		elastic   *elasticsearch.Client
 		logger    *zap.Logger
 		poolDB    map[string]*sqlx.DB
-		sqlConns  map[string]connectors.SQLConnector
-		goquConns map[string]connectors.GoQuConnector
+		sqlConns  map[string]connectors.DBConnector[*sqlx.DB, *sqlx.Tx]
+		goquConns map[string]connectors.DBConnector[*goqu.Database, *goqu.TxDatabase]
 	}
 )
 
@@ -29,8 +29,8 @@ func NewConns(
 	logger *zap.Logger,
 	elastic *elasticsearch.Client,
 	poolDB map[string]*sqlx.DB,
-	sqlConns map[string]connectors.SQLConnector,
-	goquConns map[string]connectors.GoQuConnector,
+	sqlConns map[string]connectors.DBConnector[*sqlx.DB, *sqlx.Tx],
+	goquConns map[string]connectors.DBConnector[*goqu.Database, *goqu.TxDatabase],
 ) *Conns {
 	return &Conns{
 		logger:    logger,
@@ -47,17 +47,17 @@ func (c *Conns) GetDB() (*sqlx.DB, error) {
 }
 
 // Deprecated: Use GetSQLConnByName instead
-func (c *Conns) GetSQLConn() (connectors.SQLConnector, error) {
+func (c *Conns) GetSQLConn() (connectors.DBConnector[*sqlx.DB, *sqlx.Tx], error) {
 	return c.GetSQLConnByName(connectors.DefaultDBConn)
 }
 
-func (c *Conns) GetSQLConnByName(nameConn string) (connectors.SQLConnector, error) {
-	return getConn[connectors.SQLConnector](c.sqlConns, nameConn)
+func (c *Conns) GetSQLConnByName(nameConn string) (connectors.DBConnector[*sqlx.DB, *sqlx.Tx], error) {
+	return getConn[connectors.DBConnector[*sqlx.DB, *sqlx.Tx]](c.sqlConns, nameConn)
 }
 
 // GetGoQuConn создает слой sql-builder'а для конструирования запросов в БД. Также он умеет делать scan в структуры
-func (c *Conns) GetGoQuConn(nameConn string) (connectors.GoQuConnector, error) {
-	return getConn[connectors.GoQuConnector](c.goquConns, nameConn)
+func (c *Conns) GetGoQuConn(nameConn string) (connectors.DBConnector[*goqu.Database, *goqu.TxDatabase], error) {
+	return getConn[connectors.DBConnector[*goqu.Database, *goqu.TxDatabase]](c.goquConns, nameConn)
 }
 
 func (c *Conns) GetElastic() (*elasticsearch.Client, error) {

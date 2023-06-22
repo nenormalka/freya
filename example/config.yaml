@@ -17,13 +17,15 @@ http:
   keepalive_timeout: 10s
 
 db:
- -  dsn: postgresql://postgres:example@127.0.0.1:5432
+  - dsn: postgresql://postgres:example@127.0.0.1:5432
     max_open_connections: 10
     max_idle_connections: 10
     conn_max_lifetime: 5m
     name: master
- -  dsn: postgresql://postgres:example@127.0.0.1:5432
+    type: pgx
+  - dsn: postgresql://postgres:example@127.0.0.1:5432
     max_open_connections: 10
     max_idle_connections: 10
     conn_max_lifetime: 5m
     name: slave
+    type: sqlx

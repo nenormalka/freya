@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/url"
 
-	"go.elastic.co/apm/v2"
 	"go.elastic.co/apm/v2/transport"
 )
 

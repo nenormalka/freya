@@ -19,6 +19,13 @@ var (
 		}, []string{"query", "service", "error"},
 	)
 
+	DBErrorMetrics = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "connections",
+		Subsystem: "sql",
+		Name:      "error_total",
+		Help:      "Number of db errors.",
+	}, []string{"query_name"})
+
 	GRPCErrorMetrics = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: "grpc",
 		Name:      "error_total",
@@ -52,15 +59,20 @@ func WithSQLMetrics(
 	}(time.Now())
 
 	err = callFunc()
+	if err != nil {
+		DBErrorMetrics.
+			With(prometheus.Labels{
+				"query_name": queryName,
+			}).
+			Inc()
+	}
+
 	return err
 }
 
 func errLabel(err error) string {
-	if err == nil {
-		return "false"
-	}
 	switch err {
-	case sql.ErrNoRows:
+	case sql.ErrNoRows, nil:
 		return "false"
 	default:
 		return "true"

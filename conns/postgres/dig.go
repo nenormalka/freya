@@ -9,4 +9,5 @@ var Module = types.Module{
 	{CreateFunc: NewPostgres},
 	{CreateFunc: NewSQLConnector},
 	{CreateFunc: NewGoQuConnector},
+	{CreateFunc: NewPGXPool},
 }

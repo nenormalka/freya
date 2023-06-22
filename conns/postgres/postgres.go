@@ -3,6 +3,7 @@ package postrgres
 import (
 	"errors"
 	"fmt"
+	"github.com/nenormalka/freya/conns/connectors"
 
 	"github.com/dlmiddlecote/sqlstats"
 	"github.com/jmoiron/sqlx"
@@ -20,9 +21,13 @@ func NewPostgres(config PostgresConfig) (map[string]*sqlx.DB, error) {
 		return nil, nil
 	}
 
-	m := make(map[string]*sqlx.DB, len(config.Configs))
+	m := make(map[string]*sqlx.DB)
 
 	for i := range config.Configs {
+		if config.Configs[i].Type != connectors.SqlxConnType {
+			continue
+		}
+
 		db, err := newDb(config.Configs[i])
 		if err != nil {
 			return nil, fmt.Errorf("new db err: %w", err)
@@ -56,7 +61,7 @@ func newDb(cfg DBConfig) (*sqlx.DB, error) {
 
 	collector := sqlstats.NewStatsCollector(cfg.Name, db)
 	if err = prometheus.Register(collector); err != nil && !errors.As(err, &prometheus.AlreadyRegisteredError{}) {
-		return nil, err
+		return nil, fmt.Errorf("register db sqlstats err: %w", err)
 	}
 
 	if err = db.Ping(); err != nil {

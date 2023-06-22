@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/nenormalka/freya/conns/connectors"
 	"os"
 	"strconv"
 	"strings"
@@ -11,8 +12,6 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"gopkg.in/yaml.v3"
-
-	"github.com/nenormalka/freya/conns/connectors"
 )
 
 type (
@@ -69,8 +68,10 @@ type (
 	}
 
 	DB struct {
-		DSN                string        `yaml:"dsn"`
-		Name               string        `yaml:"name"`
+		DSN  string `yaml:"dsn"`
+		Name string `yaml:"name"`
+		// Type sqlx|pgx
+		Type               string        `yaml:"type"`
 		MaxOpenConnections int           `yaml:"max_open_connections"`
 		MaxIdleConnections int           `yaml:"max_idle_connections"`
 		ConnMaxLifetime    time.Duration `yaml:"conn_max_lifetime"`
@@ -145,7 +146,11 @@ func loadYAML(cfg *Config) error {
 		return fmt.Errorf("error reading config file: %w", err)
 	}
 
-	defer func() { _ = f.Close() }()
+	defer func() {
+		if err = f.Close(); err != nil {
+			fmt.Printf("error closing config file: %v", err)
+		}
+	}()
 
 	if err = yaml.NewDecoder(f).Decode(cfg); err != nil {
 		return fmt.Errorf("error decoding config file: %w", err)
@@ -184,6 +189,10 @@ func getDBConnsENV() []DB {
 
 	maxOpenConnections := getEnvParam("DB_MAX_OPEN_CONNECTIONS", maxOpenConnectionsDB)
 	maxIdleConnections := getEnvParam("DB_MAX_IDLE_CONNECTIONS", maxIdleConnectionsDB)
+	dbtype := os.Getenv("DB_TYPE")
+	if dbtype == "" {
+		dbtype = "sqlx"
+	}
 
 	for _, pair := range os.Environ() {
 		if !strings.HasPrefix(pair, defaultDBDSN) {
@@ -205,6 +214,7 @@ func getDBConnsENV() []DB {
 			Name:               name,
 			MaxOpenConnections: maxOpenConnections,
 			MaxIdleConnections: maxIdleConnections,
+			Type:               dbtype,
 			ConnMaxLifetime:    time.Minute * 5,
 		})
 	}

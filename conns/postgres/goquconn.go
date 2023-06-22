@@ -3,13 +3,12 @@ package postrgres
 import (
 	"context"
 	"fmt"
-
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
-
 	"github.com/nenormalka/freya/config"
 	"github.com/nenormalka/freya/conns/connectors"
+	"go.uber.org/zap"
+
 	"github.com/nenormalka/freya/types"
 )
 
@@ -25,14 +24,20 @@ type (
 	}
 )
 
-func NewGoQuConnector(poolDB map[string]*sqlx.DB, logger *zap.Logger, cfg *config.Config) map[string]connectors.GoQuConnector {
-	return newConns[connectors.GoQuConnector](poolDB, func(nameConn string) connectors.GoQuConnector {
-		return &GoQuConn{
-			db:      poolDB[nameConn],
-			logger:  logger,
-			appName: cfg.AppName,
-		}
-	})
+func NewGoQuConnector(
+	poolDB map[string]*sqlx.DB,
+	logger *zap.Logger,
+	cfg *config.Config,
+) map[string]connectors.DBConnector[*goqu.Database, *goqu.TxDatabase] {
+	return newConns[connectors.DBConnector[*goqu.Database, *goqu.TxDatabase]](
+		poolDB,
+		func(nameConn string) connectors.DBConnector[*goqu.Database, *goqu.TxDatabase] {
+			return &GoQuConn{
+				db:      poolDB[nameConn],
+				logger:  logger,
+				appName: cfg.AppName,
+			}
+		})
 }
 
 func (s *GoQuConn) CallContext(

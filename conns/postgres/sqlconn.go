@@ -3,12 +3,12 @@ package postrgres
 import (
 	"context"
 	"fmt"
+	"github.com/nenormalka/freya/conns/connectors"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 
 	"github.com/nenormalka/freya/config"
-	"github.com/nenormalka/freya/conns/connectors"
 	"github.com/nenormalka/freya/types"
 )
 
@@ -20,14 +20,20 @@ type (
 	}
 )
 
-func NewSQLConnector(poolDB map[string]*sqlx.DB, logger *zap.Logger, cfg *config.Config) map[string]connectors.SQLConnector {
-	return newConns[connectors.SQLConnector](poolDB, func(nameConn string) connectors.SQLConnector {
-		return &SQLConn{
-			db:      poolDB[nameConn],
-			logger:  logger,
-			appName: cfg.AppName,
-		}
-	})
+func NewSQLConnector(
+	poolDB map[string]*sqlx.DB,
+	logger *zap.Logger,
+	cfg *config.Config,
+) map[string]connectors.DBConnector[*sqlx.DB, *sqlx.Tx] {
+	return newConns[connectors.DBConnector[*sqlx.DB, *sqlx.Tx]](
+		poolDB,
+		func(nameConn string) connectors.DBConnector[*sqlx.DB, *sqlx.Tx] {
+			return &SQLConn{
+				db:      poolDB[nameConn],
+				logger:  logger,
+				appName: cfg.AppName,
+			}
+		})
 }
 
 func (s *SQLConn) CallContext(

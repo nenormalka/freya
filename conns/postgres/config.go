@@ -12,8 +12,10 @@ type (
 	}
 
 	DBConfig struct {
-		DSN                string
-		Name               string
+		DSN  string
+		Name string
+		// Type pgx|sqlx
+		Type               string
 		MaxOpenConnections int
 		MaxIdleConnections int
 		ConnMaxLifetime    time.Duration
@@ -34,6 +36,7 @@ func NewPostgresConfig(cfg *config.Config) PostgresConfig {
 			MaxOpenConnections: cfg.DB[i].MaxOpenConnections,
 			MaxIdleConnections: cfg.DB[i].MaxIdleConnections,
 			ConnMaxLifetime:    cfg.DB[i].ConnMaxLifetime,
+			Type:               cfg.DB[i].Type,
 		}
 	}
 

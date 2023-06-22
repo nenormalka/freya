@@ -7,7 +7,6 @@ import (
 
 	"github.com/nenormalka/freya/types"
 
-	"go.elastic.co/apm/v2"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

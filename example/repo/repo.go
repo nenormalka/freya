@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"fmt"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/nenormalka/freya/conns"
 	"github.com/nenormalka/freya/conns/connectors"
@@ -12,7 +11,7 @@ import (
 
 type (
 	Repo struct {
-		db     connectors.SQLConnector
+		db     connectors.DBConnector[*sqlx.DB, *sqlx.Tx]
 		logger *zap.Logger
 	}
 )
