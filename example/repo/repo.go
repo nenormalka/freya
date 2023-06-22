@@ -3,11 +3,13 @@ package repo
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/nenormalka/freya/conns"
 	"github.com/nenormalka/freya/conns/connectors"
 	dbtypes "github.com/nenormalka/freya/conns/postgres/types"
+
 	"go.uber.org/zap"
-	"time"
 )
 
 type (
@@ -22,7 +24,7 @@ const (
 )
 
 func NewRepo(conns *conns.Conns, logger *zap.Logger) (*Repo, error) {
-	db, err := conns.GetPGXConnByName("master")
+	db, err := conns.GetPGXConnByName(connectors.DefaultDBConn)
 	if err != nil {
 		return nil, fmt.Errorf("create repo err: %w", err)
 	}

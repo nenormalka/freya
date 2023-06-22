@@ -2,9 +2,9 @@ package types
 
 import (
 	"context"
-	"github.com/jackc/pgx/v4"
 
 	"github.com/jackc/pgtype/pgxtype"
+	"github.com/jackc/pgx/v4"
 )
 
 type (

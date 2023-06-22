@@ -2,6 +2,7 @@ package postrgres
 
 import (
 	"fmt"
+
 	"github.com/nenormalka/freya/conns/connectors"
 	"github.com/nenormalka/freya/conns/postgres/collector"
 

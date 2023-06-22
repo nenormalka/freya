@@ -3,12 +3,13 @@ package postrgres
 import (
 	"context"
 	"fmt"
+
 	"github.com/doug-martin/goqu/v9"
 	"github.com/jmoiron/sqlx"
-	"github.com/nenormalka/freya/config"
-	"github.com/nenormalka/freya/conns/connectors"
 	"go.uber.org/zap"
 
+	"github.com/nenormalka/freya/config"
+	"github.com/nenormalka/freya/conns/connectors"
 	"github.com/nenormalka/freya/types"
 )
 

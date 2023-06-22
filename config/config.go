@@ -4,11 +4,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/nenormalka/freya/conns/connectors"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/nenormalka/freya/conns/connectors"
 
 	"github.com/kelseyhightower/envconfig"
 	"gopkg.in/yaml.v3"
