@@ -4,15 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/jackc/pgx/v4"
+	"time"
+
+	"github.com/nenormalka/freya/config"
 	"github.com/nenormalka/freya/conns/connectors"
 	"github.com/nenormalka/freya/conns/postgres/collector"
 	dbtypes "github.com/nenormalka/freya/conns/postgres/types"
 	"github.com/nenormalka/freya/types"
 
-	"github.com/nenormalka/freya/config"
-
 	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"go.uber.org/zap"
 )
@@ -26,6 +27,7 @@ type (
 )
 
 func NewPGXPoolConn(
+	ctx context.Context,
 	pgxPool map[string]*pgxpool.Pool,
 	logger *zap.Logger,
 	cfg *config.Config,
@@ -46,6 +48,8 @@ func NewPGXPoolConn(
 		if err := collector.CollectDBStats(i, conn); err != nil {
 			return nil, fmt.Errorf("failed to collect db stats: %w", err)
 		}
+
+		conn.ping(ctx)
 
 		pools[i] = conn
 	}
@@ -108,4 +112,26 @@ func (c *PGXPoolConn) Stats() sql.DBStats {
 		MaxIdleTimeClosed: stats.MaxIdleDestroyCount(),
 		MaxLifetimeClosed: stats.MaxLifetimeDestroyCount(),
 	}
+}
+
+func (c *PGXPoolConn) ping(ctx context.Context) {
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				conns := c.AcquireAllIdle(ctx)
+
+				for i := range conns {
+					if err := conns[i].Ping(ctx); err != nil {
+						c.logger.Error("failed to ping db", zap.Error(err))
+					}
+				}
+			}
+		}
+	}()
 }
