@@ -3,8 +3,10 @@ package postrgres
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v4/pgxpool"
+
 	"github.com/nenormalka/freya/conns/connectors"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 	"go.elastic.co/apm/module/apmpgx/v2"
 )
 
