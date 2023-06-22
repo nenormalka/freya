@@ -192,7 +192,7 @@ func getDBConnsENV() []DB {
 	maxIdleConnections := getEnvParam("DB_MAX_IDLE_CONNECTIONS", maxIdleConnectionsDB)
 	dbtype := os.Getenv("DB_TYPE")
 	if dbtype == "" {
-		dbtype = "sqlx"
+		dbtype = connectors.SqlxConnType
 	}
 
 	for _, pair := range os.Environ() {
