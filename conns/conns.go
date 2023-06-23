@@ -15,13 +15,19 @@ import (
 
 type (
 	Conns struct {
-		elastic    *elasticsearch.Client
-		logger     *zap.Logger
+		elastic *elasticsearch.Client
+		logger  *zap.Logger
+		// db_name -> коннект, мапа с соединениями к бд, нужна, чтобы закрыть всё при выключении сервиса
 		sqlxPoolDB map[string]*sqlx.DB
-		pgxPoolDB  map[string]*pgxpool.Pool
-		sqlConns   map[string]connectors.DBConnector[*sqlx.DB, *sqlx.Tx]
-		goquConns  map[string]connectors.DBConnector[*goqu.Database, *goqu.TxDatabase]
-		pgxConns   map[string]connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx]
+		// db_name -> пул коннектов pgx, мапа с соединениями к бд, нужна, чтобы закрыть всё при выключении сервиса
+		pgxPoolDB map[string]*pgxpool.Pool
+		// DBConnector обёртка нужна, чтобы собирать метрики в прометеус через WithSQLMetrics
+		// db_name -> обёртка над sqlx
+		sqlConns map[string]connectors.DBConnector[*sqlx.DB, *sqlx.Tx]
+		// db_name -> обёртка над goqu
+		goquConns map[string]connectors.DBConnector[*goqu.Database, *goqu.TxDatabase]
+		// db_name -> обёртка над pgx
+		pgxConns map[string]connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx]
 	}
 )
 

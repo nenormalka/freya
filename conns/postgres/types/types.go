@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 
+	"github.com/georgysavva/scany/pgxscan"
 	"github.com/jackc/pgtype/pgxtype"
 	"github.com/jackc/pgx/v4"
 )
@@ -26,3 +27,11 @@ type (
 		PgxTransactor
 	}
 )
+
+func (p *PgxTx) Select(ctx context.Context, dst interface{}, query string, args ...interface{}) error {
+	return pgxscan.Select(ctx, p, dst, query, args...)
+}
+
+func (p *PgxTx) Get(ctx context.Context, dst interface{}, query string, args ...interface{}) error {
+	return pgxscan.Get(ctx, p, dst, query, args...)
+}
