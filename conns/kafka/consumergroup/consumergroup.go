@@ -59,7 +59,7 @@ func NewConsumerGroup(
 	cfg common.Config,
 	name string,
 	logger *zap.Logger,
-	opts []ConsumerGroupOption,
+	opts ...ConsumerGroupOption,
 ) (*ConsumerGroup, error) {
 	if name == "" {
 		return nil, errEmptyGroupName

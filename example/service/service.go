@@ -77,7 +77,7 @@ func NewService(p Params, conns *conns.Conns) (*Service, error) {
 		return nil, fmt.Errorf("get kafka err: %w", err)
 	}
 
-	cg, err := k.NewConsumerGroup("test", nil)
+	cg, err := k.NewConsumerGroup("test")
 	if err != nil {
 		return nil, fmt.Errorf("new consumer group err: %w", err)
 	}
