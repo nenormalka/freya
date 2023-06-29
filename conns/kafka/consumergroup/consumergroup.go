@@ -30,7 +30,7 @@ type (
 		sess    sarama.ConsumerGroupSession
 	}
 
-	ConsumerGroupOpt func(cg *ConsumerGroup)
+	ConsumerGroupOption func(cg *ConsumerGroup)
 )
 
 var (
@@ -41,13 +41,13 @@ var (
 	errGroupAlreadyClosed = errors.New("err group already closed")
 )
 
-func ConfigOption(cfg *sarama.Config) ConsumerGroupOpt {
+func ConfigOption(cfg *sarama.Config) ConsumerGroupOption {
 	return func(g *ConsumerGroup) {
 		g.config = cfg
 	}
 }
 
-func ErrFuncOption(f common.ErrFunc) ConsumerGroupOpt {
+func ErrFuncOption(f common.ErrFunc) ConsumerGroupOption {
 	return func(g *ConsumerGroup) {
 		g.errFunc = f
 	}
@@ -57,7 +57,7 @@ func NewConsumerGroup(
 	cfg common.Config,
 	name string,
 	logger *zap.Logger,
-	opts ...ConsumerGroupOpt,
+	opts []ConsumerGroupOption,
 ) (*ConsumerGroup, error) {
 	if name == "" {
 		return nil, errEmptyGroupName

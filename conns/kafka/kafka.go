@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"fmt"
+
 	"github.com/nenormalka/freya/conns/kafka/common"
 	"github.com/nenormalka/freya/conns/kafka/consumergroup"
 
@@ -34,12 +35,12 @@ func NewKafka(cfg common.Config, logger *zap.Logger) *Kafka {
 	}
 }
 
-func (k *Kafka) NewConsumerGroup(nameGroup string) (ConsumerGroup, error) {
+func (k *Kafka) NewConsumerGroup(nameGroup string, opts []consumergroup.ConsumerGroupOption) (ConsumerGroup, error) {
 	if gr, ok := k.group[nameGroup]; ok {
 		return gr, nil
 	}
 
-	gr, err := consumergroup.NewConsumerGroup(k.cfg, nameGroup, k.logger, nil)
+	gr, err := consumergroup.NewConsumerGroup(k.cfg, nameGroup, k.logger, opts)
 	if err != nil {
 		return nil, fmt.Errorf("kafka: create consumer group err: %w", err)
 	}

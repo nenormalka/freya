@@ -90,7 +90,7 @@ func (c *Conns) GetGoQuConn(nameConn string) (connectors.DBConnector[*goqu.Datab
 
 // GetKafka возвращает абстракцию над кафкой
 func (c *Conns) GetKafka() (*kafka.Kafka, error) {
-	if c.elastic == nil {
+	if c.kafka == nil {
 		return nil, errEmptyKafka
 	}
 
