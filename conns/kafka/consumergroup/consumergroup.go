@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/nenormalka/freya/types"
 	"sync"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/nenormalka/freya/conns/kafka/common"
+	"github.com/nenormalka/freya/types"
 )
 
 type (

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v4"
+
 	lilith "github.com/nenormalka/lilith/methods"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
