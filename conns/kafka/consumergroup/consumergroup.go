@@ -1,0 +1,202 @@
+package consumergroup
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"sync"
+
+	"github.com/Shopify/sarama"
+	"github.com/chapsuk/wait"
+	"go.uber.org/zap"
+
+	"github.com/nenormalka/freya/conns/kafka/common"
+)
+
+type (
+	ConsumerGroup struct {
+		name          string
+		skipUnmarshal map[common.Topic]struct{}
+		topics        common.Topics
+		handlers      map[common.Topic][]common.MessageHandler
+		closed        chan struct{}
+
+		logger  *zap.Logger
+		config  *sarama.Config
+		errFunc common.ErrFunc
+		group   sarama.ConsumerGroup
+		wg      *wait.Group
+		mu      *sync.RWMutex
+		sess    sarama.ConsumerGroupSession
+	}
+
+	ConsumerGroupOpt func(cg *ConsumerGroup)
+)
+
+var (
+	errEmptyConfig        = errors.New("err empty config")
+	errEmptyAddresses     = errors.New("err empty addresses")
+	errEmptyErrFunc       = errors.New("err empty err func")
+	errEmptyGroupName     = errors.New("err empty group name")
+	errGroupAlreadyClosed = errors.New("err group already closed")
+)
+
+func ConfigOption(cfg *sarama.Config) ConsumerGroupOpt {
+	return func(g *ConsumerGroup) {
+		g.config = cfg
+	}
+}
+
+func ErrFuncOption(f common.ErrFunc) ConsumerGroupOpt {
+	return func(g *ConsumerGroup) {
+		g.errFunc = f
+	}
+}
+
+func NewConsumerGroup(
+	cfg common.Config,
+	name string,
+	logger *zap.Logger,
+	opts ...ConsumerGroupOpt,
+) (*ConsumerGroup, error) {
+	if name == "" {
+		return nil, errEmptyGroupName
+	}
+
+	if len(cfg.Addresses) == 0 {
+		return nil, errEmptyAddresses
+	}
+
+	cg := &ConsumerGroup{
+		name:          name,
+		config:        sarama.NewConfig(),
+		skipUnmarshal: cfg.SkipUnmarshalErrors,
+		logger:        logger,
+		handlers:      make(map[common.Topic][]common.MessageHandler),
+		closed:        make(chan struct{}),
+		wg:            &wait.Group{},
+		mu:            &sync.RWMutex{},
+		errFunc: func(err error) {
+			if err != nil {
+				logger.Error(fmt.Sprintf("consume on topic %s", name), zap.Error(err))
+			}
+		},
+	}
+
+	for _, opt := range opts {
+		opt(cg)
+	}
+
+	if cg.config == nil {
+		return nil, errEmptyConfig
+	}
+
+	if cg.errFunc == nil {
+		return nil, errEmptyErrFunc
+	}
+
+	var err error
+	cg.group, err = sarama.NewConsumerGroup(cfg.Addresses, name, cg.config)
+	if err != nil {
+		return nil, fmt.Errorf("create consumer group: %w", err)
+	}
+
+	cg.wg.Add(cg.serveErrors)
+
+	return cg, nil
+}
+
+func (cg *ConsumerGroup) AddHandler(topic common.Topic, hm common.MessageHandler) {
+	if _, ok := cg.handlers[topic]; !ok {
+		cg.handlers[topic] = make([]common.MessageHandler, 0)
+	}
+
+	cg.handlers[topic] = append(cg.handlers[topic], hm)
+	cg.topics = append(cg.topics, topic)
+}
+
+func (cg *ConsumerGroup) Consume() {
+	cg.wg.Add(func() {
+		for {
+			select {
+			case <-cg.closed:
+				return
+			default:
+			}
+
+			if err := cg.group.Consume(context.Background(), cg.topics.ToStrings(), cg); err != nil {
+				cg.errFunc(err)
+			}
+		}
+	})
+}
+
+func (cg *ConsumerGroup) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	cg.logger.Info(fmt.Sprintf("Kafka: start consume topic: %s partition: %d", claim.Topic(), claim.Partition()))
+
+	handlers, ok := cg.handlers[common.Topic(claim.Topic())]
+	if !ok {
+		return fmt.Errorf("missing handlers for topic: %s", claim.Topic())
+	}
+
+	for msg := range claim.Messages() {
+		for _, h := range handlers {
+			err := h(msg.Value)
+			if err != nil {
+				cg.errFunc(fmt.Errorf("handle %s topic: %w", msg.Topic, err))
+
+				if _, ok = cg.skipUnmarshal[common.Topic(claim.Topic())]; ok {
+					continue
+				}
+
+				return fmt.Errorf("ConsumeClaim topic %s, err %w", msg.Topic, err)
+			}
+		}
+
+		sess.MarkMessage(msg, "ok")
+	}
+
+	return nil
+}
+
+func (cg *ConsumerGroup) Setup(sess sarama.ConsumerGroupSession) error {
+	cg.mu.Lock()
+	defer cg.mu.Unlock()
+
+	cg.sess = sess
+
+	return nil
+}
+
+func (cg *ConsumerGroup) Cleanup(_ sarama.ConsumerGroupSession) error {
+	cg.mu.Lock()
+	defer cg.mu.Unlock()
+
+	cg.sess = nil
+
+	return nil
+}
+
+func (cg *ConsumerGroup) Close() error {
+	select {
+	case <-cg.closed:
+		return errGroupAlreadyClosed
+	default:
+	}
+
+	close(cg.closed)
+	err := cg.group.Close()
+	cg.wg.Wait()
+
+	if err != nil {
+		return fmt.Errorf("consumer group %s, close err %w", cg.name, err)
+	}
+
+	return nil
+}
+
+func (cg *ConsumerGroup) serveErrors() {
+	for err := range cg.group.Errors() {
+		cg.errFunc(err)
+	}
+}

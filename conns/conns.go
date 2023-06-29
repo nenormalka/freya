@@ -2,6 +2,7 @@ package conns
 
 import (
 	"errors"
+	"github.com/nenormalka/freya/conns/kafka"
 
 	"github.com/nenormalka/freya/conns/connectors"
 	dbtypes "github.com/nenormalka/freya/conns/postgres/types"
@@ -28,6 +29,8 @@ type (
 		goquConns map[string]connectors.DBConnector[*goqu.Database, *goqu.TxDatabase]
 		// db_name -> обёртка над pgx
 		pgxConns map[string]connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx]
+		// kafka абстракция над кафкой
+		kafka *kafka.Kafka
 	}
 )
 
@@ -35,6 +38,7 @@ var (
 	errEmptyElasticConn = errors.New("empty elastic connection")
 	errEmptyPool        = errors.New("empty pool")
 	errEmptyConn        = errors.New("empty connection")
+	errEmptyKafka       = errors.New("empty kafka")
 )
 
 func NewConns(
@@ -45,6 +49,7 @@ func NewConns(
 	sqlConns map[string]connectors.DBConnector[*sqlx.DB, *sqlx.Tx],
 	goquConns map[string]connectors.DBConnector[*goqu.Database, *goqu.TxDatabase],
 	pgxConns map[string]connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx],
+	kafka *kafka.Kafka,
 ) *Conns {
 	return &Conns{
 		logger:     logger,
@@ -54,6 +59,7 @@ func NewConns(
 		goquConns:  goquConns,
 		pgxConns:   pgxConns,
 		pgxPoolDB:  pgxPoolDB,
+		kafka:      kafka,
 	}
 }
 
@@ -67,10 +73,12 @@ func (c *Conns) GetSQLConn() (connectors.DBConnector[*sqlx.DB, *sqlx.Tx], error)
 	return c.GetSQLConnByName(connectors.DefaultDBConn)
 }
 
+// GetSQLConnByName возвращает коннект к бд, если он есть
 func (c *Conns) GetSQLConnByName(nameConn string) (connectors.DBConnector[*sqlx.DB, *sqlx.Tx], error) {
 	return getConn[connectors.DBConnector[*sqlx.DB, *sqlx.Tx]](c.sqlConns, nameConn)
 }
 
+// GetPGXConnByName возвращает коннект к бд, если он есть
 func (c *Conns) GetPGXConnByName(nameConn string) (connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx], error) {
 	return getConn[connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx]](c.pgxConns, nameConn)
 }
@@ -80,6 +88,16 @@ func (c *Conns) GetGoQuConn(nameConn string) (connectors.DBConnector[*goqu.Datab
 	return getConn[connectors.DBConnector[*goqu.Database, *goqu.TxDatabase]](c.goquConns, nameConn)
 }
 
+// GetKafka возвращает абстракцию над кафкой
+func (c *Conns) GetKafka() (*kafka.Kafka, error) {
+	if c.elastic == nil {
+		return nil, errEmptyKafka
+	}
+
+	return c.kafka, nil
+}
+
+// GetElastic возвращает клиент для работы с эластиком
 func (c *Conns) GetElastic() (*elasticsearch.Client, error) {
 	if c.elastic == nil {
 		return nil, errEmptyElasticConn

@@ -24,6 +24,7 @@ type (
 		HTTP          HTTPServerConfig `yaml:"http"`
 		GRPC          GRPCServerConfig `yaml:"grpc"`
 		APM           ElasticAPMConfig `yaml:"apm"`
+		Kafka         KafkaConfig      `yaml:"kafka"`
 		DB            []DB             `yaml:"db"`
 		ElasticSearch ElasticSearch    `yaml:"elastic_search"`
 		Sentry        Sentry           `yaml:"sentry"`
@@ -66,6 +67,11 @@ type (
 		ServiceName string `envconfig:"ELASTIC_APM_SERVICE_NAME" yaml:"service_name"`
 		ServerURL   string `envconfig:"ELASTIC_APM_SERVER_URL" yaml:"server_url"`
 		Environment string `envconfig:"ELASTIC_APM_ENVIRONMENT" yaml:"environment"`
+	}
+
+	KafkaConfig struct {
+		Addresses     []string `yaml:"addresses"`
+		SkipUnmarshal []string `yaml:"skip_unmarshal"`
 	}
 
 	DB struct {
@@ -167,11 +173,12 @@ func loadENV(cfg *Config) error {
 	}
 
 	cfg.DB = getDBConnsENV()
+	cfg.Kafka = getKafkaConfig()
 
 	return nil
 }
 
-func getEnvParam(param string, defaultValue int) int {
+func getEnvParamInt(param string, defaultValue int) int {
 	envParam := os.Getenv(param)
 	if envParam == "" {
 		return defaultValue
@@ -185,12 +192,28 @@ func getEnvParam(param string, defaultValue int) int {
 	return value
 }
 
+func getEnvParamStr(param string, defaultValue string) string {
+	envParam := os.Getenv(param)
+	if envParam == "" {
+		return defaultValue
+	}
+
+	return envParam
+}
+
+func getKafkaConfig() KafkaConfig {
+	return KafkaConfig{
+		Addresses:     strings.Split(getEnvParamStr("KAFKA_ADDRESSES", ""), ","),
+		SkipUnmarshal: strings.Split(getEnvParamStr("KAFKA_SKIP_UNMARSHAL", ""), ","),
+	}
+}
+
 func getDBConnsENV() []DB {
 	var dbConns []DB
 
-	maxOpenConnections := getEnvParam("DB_MAX_OPEN_CONNECTIONS", maxOpenConnectionsDB)
-	maxIdleConnections := getEnvParam("DB_MAX_IDLE_CONNECTIONS", maxIdleConnectionsDB)
-	dbtype := os.Getenv("DB_TYPE")
+	maxOpenConnections := getEnvParamInt("DB_MAX_OPEN_CONNECTIONS", maxOpenConnectionsDB)
+	maxIdleConnections := getEnvParamInt("DB_MAX_IDLE_CONNECTIONS", maxIdleConnectionsDB)
+	dbtype := getEnvParamStr("DB_TYPE", "")
 	if dbtype == "" {
 		dbtype = connectors.SqlxConnType
 	}
