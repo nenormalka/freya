@@ -39,6 +39,16 @@ var (
 		Name:      "panic_total",
 		Help:      "Number of grpc panic.",
 	})
+
+	KafkaConsumerGroup = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "kafka",
+			Subsystem: "consumer_group",
+			Name:      "duration_consume",
+			Help:      "Consumer group consume duration",
+		},
+		[]string{"consumer_group", "topic", "error"},
+	)
 )
 
 func GRPCPanicInc() {
@@ -47,6 +57,12 @@ func GRPCPanicInc() {
 
 func GRPCErrorInc() {
 	GRPCErrorMetrics.Inc()
+}
+
+func WithKafkaConsumerGroupMetrics(groupName, topic string, err error, duration float64) {
+	KafkaConsumerGroup.
+		WithLabelValues(groupName, topic, lilith.Ternary(isError(err), "true", "false")).
+		Observe(duration)
 }
 
 func WithSQLMetrics(
