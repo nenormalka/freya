@@ -18,7 +18,7 @@ func NewLogger(cfg *config.Config) (*zap.Logger, error) {
 
 	configZap := zap.NewProductionConfig()
 	configZap.Level = zap.NewAtomicLevelAt(level)
-	configZap.InitialFields = map[string]interface{}{
+	configZap.InitialFields = map[string]any{
 		"service":    cfg.AppName,
 		"release.id": cfg.ReleaseID,
 	}

@@ -20,7 +20,7 @@ import (
 type (
 	Definition struct {
 		Description    *grpc.ServiceDesc
-		Implementation interface{}
+		Implementation any
 	}
 
 	Params struct {

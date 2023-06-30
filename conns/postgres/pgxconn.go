@@ -90,11 +90,11 @@ func (c *PGXPoolConn) CallTransaction(
 	})
 }
 
-func (c *PGXPoolConn) Select(ctx context.Context, dst interface{}, query string, args ...interface{}) error {
+func (c *PGXPoolConn) Select(ctx context.Context, dst any, query string, args ...any) error {
 	return pgxscan.Select(ctx, c, dst, query, args...)
 }
 
-func (c *PGXPoolConn) Get(ctx context.Context, dst interface{}, query string, args ...interface{}) error {
+func (c *PGXPoolConn) Get(ctx context.Context, dst any, query string, args ...any) error {
 	return pgxscan.Get(ctx, c, dst, query, args...)
 }
 

@@ -58,7 +58,7 @@ func interceptors(
 	return ints
 }
 
-func recFunc(p interface{}) (err error) {
+func recFunc(p any) (err error) {
 	types.GRPCPanicInc()
 
 	return status.Errorf(codes.Internal, "panic triggered: %v", p)
@@ -66,9 +66,9 @@ func recFunc(p interface{}) (err error) {
 
 func errorInterceptor() grpc.UnaryServerInterceptor {
 	return func(
-		ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+		ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
 	) (
-		resp interface{}, err error,
+		resp any, err error,
 	) {
 		resp, err = handler(ctx, req)
 		if err != nil {
@@ -81,9 +81,9 @@ func errorInterceptor() grpc.UnaryServerInterceptor {
 
 func logMetadataInterceptor(logger *zap.Logger, config Config) grpc.UnaryServerInterceptor {
 	return func(
-		ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+		ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
 	) (
-		resp interface{}, err error,
+		resp any, err error,
 	) {
 		md, ok := metadata.FromIncomingContext(ctx)
 
@@ -111,9 +111,9 @@ func logMetadataInterceptor(logger *zap.Logger, config Config) grpc.UnaryServerI
 
 func payloadLoggingInterceptor(logger *zap.Logger, config Config) grpc.UnaryServerInterceptor {
 	return func(
-		ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+		ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
 	) (
-		resp interface{}, err error,
+		resp any, err error,
 	) {
 		apiLogger := logger.Named("api")
 		methodFld := zap.String("grpc.method", path.Base(info.FullMethod))

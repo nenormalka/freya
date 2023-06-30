@@ -78,7 +78,7 @@ func (e *Engine) provide(m types.Module) {
 	}
 }
 
-func (e *Engine) mainFunc() interface{} {
+func (e *Engine) mainFunc() any {
 	return func(
 		ctx context.Context,
 		app types.App,

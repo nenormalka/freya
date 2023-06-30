@@ -11,8 +11,8 @@ import (
 type (
 	PgxQuerier interface {
 		pgxtype.Querier
-		Get(ctx context.Context, dst interface{}, query string, args ...interface{}) error
-		Select(ctx context.Context, dst interface{}, query string, args ...interface{}) error
+		Get(ctx context.Context, dst any, query string, args ...any) error
+		Select(ctx context.Context, dst any, query string, args ...any) error
 	}
 
 	PgxTransactor interface {
@@ -28,10 +28,10 @@ type (
 	}
 )
 
-func (p *PgxTx) Select(ctx context.Context, dst interface{}, query string, args ...interface{}) error {
+func (p *PgxTx) Select(ctx context.Context, dst any, query string, args ...any) error {
 	return pgxscan.Select(ctx, p, dst, query, args...)
 }
 
-func (p *PgxTx) Get(ctx context.Context, dst interface{}, query string, args ...interface{}) error {
+func (p *PgxTx) Get(ctx context.Context, dst any, query string, args ...any) error {
 	return pgxscan.Get(ctx, p, dst, query, args...)
 }

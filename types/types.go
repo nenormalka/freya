@@ -7,7 +7,7 @@ import (
 
 type (
 	Provider struct {
-		CreateFunc interface{}
+		CreateFunc any
 		Options    []dig.ProvideOption
 	}
 

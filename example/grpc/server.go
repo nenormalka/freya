@@ -51,10 +51,10 @@ func getInterceptors() []grpc2.UnaryServerInterceptor {
 
 func printMetadataInterceptor() grpc2.UnaryServerInterceptor {
 	return func(ctx context.Context,
-		req interface{},
+		req any,
 		info *grpc2.UnaryServerInfo,
 		handler grpc2.UnaryHandler,
-	) (interface{}, error) {
+	) (any, error) {
 
 		res := ""
 
@@ -76,10 +76,10 @@ func printMetadataInterceptor() grpc2.UnaryServerInterceptor {
 
 func getCustomInterceptor() grpc2.UnaryServerInterceptor {
 	return func(ctx context.Context,
-		req interface{},
+		req any,
 		info *grpc2.UnaryServerInfo,
 		handler grpc2.UnaryHandler,
-	) (interface{}, error) {
+	) (any, error) {
 		fmt.Println(">>> ", time.Now().String())
 		resp, err := handler(ctx, req)
 		fmt.Println("<<< ", time.Now().String())
