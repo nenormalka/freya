@@ -50,3 +50,15 @@ func StartServerWithWaiting(ctx context.Context, f func(errCh chan error)) error
 		return err
 	}
 }
+
+func CheckAddr(addr string) string {
+	if addr == "" {
+		return addr
+	}
+
+	if addr[0] == ':' {
+		return addr
+	}
+
+	return ":" + addr
+}

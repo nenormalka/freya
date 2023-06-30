@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/nenormalka/freya/config"
+	"github.com/nenormalka/freya/types"
 )
 
 type (
@@ -18,7 +19,7 @@ type (
 
 func NewGRPCConfig(cfg *config.Config) Config {
 	return Config{
-		ListenAddr:       cfg.GRPC.ListenAddr,
+		ListenAddr:       types.CheckAddr(cfg.GRPC.ListenAddr),
 		KeepaliveTime:    cfg.GRPC.KeepaliveTime,
 		KeepaliveTimeout: cfg.GRPC.KeepaliveTimeout,
 		WithReflection:   cfg.GRPC.RegisterReflectionServer,

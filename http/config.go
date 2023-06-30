@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/nenormalka/freya/config"
+	"github.com/nenormalka/freya/types"
 )
 
 type Config struct {
@@ -15,7 +16,7 @@ type Config struct {
 
 func NewHTTPConfig(cfg *config.Config) Config {
 	return Config{
-		ListenAddr:       cfg.HTTP.ListenAddr,
+		ListenAddr:       types.CheckAddr(cfg.HTTP.ListenAddr),
 		KeepaliveTime:    cfg.HTTP.KeepaliveTime,
 		KeepaliveTimeout: cfg.HTTP.KeepaliveTimeout,
 		ReleaseID:        cfg.ReleaseID,
