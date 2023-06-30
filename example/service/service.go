@@ -29,6 +29,7 @@ type (
 		cg     kafka.ConsumerGroup
 		sp     kafka.SyncProducer
 		ch     chan KafkaMessage
+		close  chan struct{}
 	}
 
 	KafkaMessage struct {
@@ -63,6 +64,7 @@ func NewService(p Params, conns *conns.Conns) (*Service, error) {
 		cg:     cg,
 		sp:     sp,
 		ch:     make(chan KafkaMessage),
+		close:  make(chan struct{}),
 	}
 
 	s.addHandler()
@@ -137,6 +139,12 @@ func (s *Service) produce() {
 
 		i := 0
 		for {
+			select {
+			case <-s.close:
+				return
+			default:
+			}
+
 			<-ticker.C
 
 			msg := KafkaMessage{

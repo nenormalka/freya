@@ -130,6 +130,8 @@ func (c *PGXPoolConn) ping(ctx context.Context) {
 					if err := conns[i].Ping(ctx); err != nil {
 						c.logger.Error("failed to ping db", zap.Error(err))
 					}
+
+					conns[i].Release()
 				}
 			}
 		}
