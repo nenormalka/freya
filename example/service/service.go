@@ -88,6 +88,8 @@ func (s *Service) Start(ctx context.Context) error {
 }
 
 func (s *Service) Stop(ctx context.Context) error {
+	close(s.close)
+
 	_ = s.cg.Close()
 	_ = s.sp.Close()
 
