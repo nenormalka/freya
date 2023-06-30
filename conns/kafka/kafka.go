@@ -5,6 +5,7 @@ import (
 
 	"github.com/nenormalka/freya/conns/kafka/common"
 	"github.com/nenormalka/freya/conns/kafka/consumergroup"
+	"github.com/nenormalka/freya/conns/kafka/syncproducer"
 
 	"go.uber.org/zap"
 )
@@ -13,6 +14,11 @@ type (
 	ConsumerGroup interface {
 		AddHandler(topic common.Topic, hm common.MessageHandler)
 		Consume()
+		Close() error
+	}
+
+	SyncProducer interface {
+		Send(topic string, message []byte) error
 		Close() error
 	}
 
@@ -40,4 +46,13 @@ func (k *Kafka) NewConsumerGroup(nameGroup string, opts ...consumergroup.Consume
 	}
 
 	return gr, nil
+}
+
+func (k *Kafka) NewSyncProducer(opts ...syncproducer.SyncProducerOption) (SyncProducer, error) {
+	sp, err := syncproducer.NewSyncProducer(k.cfg, k.logger, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("kafka: create sync producer err: %w", err)
+	}
+
+	return sp, nil
 }

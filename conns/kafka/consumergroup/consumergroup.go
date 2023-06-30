@@ -2,7 +2,6 @@ package consumergroup
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -35,23 +34,15 @@ type (
 	ConsumerGroupOption func(cg *ConsumerGroup)
 )
 
-var (
-	errEmptyConfig        = errors.New("err empty config")
-	errEmptyAddresses     = errors.New("err empty addresses")
-	errEmptyErrFunc       = errors.New("err empty err func")
-	errEmptyGroupName     = errors.New("err empty group name")
-	errGroupAlreadyClosed = errors.New("err group already closed")
-)
-
 func ConfigOption(cfg *sarama.Config) ConsumerGroupOption {
-	return func(g *ConsumerGroup) {
-		g.config = cfg
+	return func(cg *ConsumerGroup) {
+		cg.config = cfg
 	}
 }
 
 func ErrFuncOption(f common.ErrFunc) ConsumerGroupOption {
-	return func(g *ConsumerGroup) {
-		g.errFunc = f
+	return func(cg *ConsumerGroup) {
+		cg.errFunc = f
 	}
 }
 
@@ -62,11 +53,11 @@ func NewConsumerGroup(
 	opts ...ConsumerGroupOption,
 ) (*ConsumerGroup, error) {
 	if name == "" {
-		return nil, errEmptyGroupName
+		return nil, common.ErrEmptyGroupName
 	}
 
 	if len(cfg.Addresses) == 0 {
-		return nil, errEmptyAddresses
+		return nil, common.ErrEmptyAddresses
 	}
 
 	cg := &ConsumerGroup{
@@ -90,11 +81,11 @@ func NewConsumerGroup(
 	}
 
 	if cg.config == nil {
-		return nil, errEmptyConfig
+		return nil, common.ErrEmptyConfig
 	}
 
 	if cg.errFunc == nil {
-		return nil, errEmptyErrFunc
+		return nil, common.ErrEmptyErrFunc
 	}
 
 	var err error
@@ -148,7 +139,7 @@ func (cg *ConsumerGroup) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sa
 			if err := h(msg.Value); err != nil {
 				cg.errFunc(fmt.Errorf("handle %s topic: err %w", msg.Topic, err))
 
-				types.WithKafkaConsumerGroupMetrics(cg.name, msg.Topic, err, time.Since(start).Seconds())
+				types.KafkaConsumerGroupMetricsF(cg.name, msg.Topic, err, time.Since(start).Seconds())
 
 				if _, ok = cg.skipUnmarshalError[common.Topic(claim.Topic())]; ok {
 					continue
@@ -160,7 +151,7 @@ func (cg *ConsumerGroup) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sa
 
 		sess.MarkMessage(msg, "ok")
 
-		types.WithKafkaConsumerGroupMetrics(cg.name, msg.Topic, nil, time.Since(start).Seconds())
+		types.KafkaConsumerGroupMetricsF(cg.name, msg.Topic, nil, time.Since(start).Seconds())
 	}
 
 	return nil
@@ -187,7 +178,7 @@ func (cg *ConsumerGroup) Cleanup(_ sarama.ConsumerGroupSession) error {
 func (cg *ConsumerGroup) Close() error {
 	select {
 	case <-cg.closed:
-		return errGroupAlreadyClosed
+		return common.ErrGroupAlreadyClosed
 	default:
 	}
 

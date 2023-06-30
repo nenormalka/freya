@@ -52,11 +52,7 @@ func StartServerWithWaiting(ctx context.Context, f func(errCh chan error)) error
 }
 
 func CheckAddr(addr string) string {
-	if addr == "" {
-		return addr
-	}
-
-	if addr[0] == ':' {
+	if addr == "" || addr[0] == ':' {
 		return addr
 	}
 

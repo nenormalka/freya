@@ -50,6 +50,16 @@ var (
 		},
 		[]string{"consumer_group", "topic", "error"},
 	)
+
+	KafkaSyncProducerMetrics = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "kafka",
+			Subsystem: "sync_producer",
+			Name:      "produce_count",
+			Help:      "Sync producer produce count",
+		},
+		[]string{"topic", "error"},
+	)
 )
 
 func GRPCPanicInc() {
@@ -60,7 +70,13 @@ func GRPCErrorInc() {
 	GRPCErrorMetrics.Inc()
 }
 
-func WithKafkaConsumerGroupMetrics(groupName, topic string, err error, duration float64) {
+func KafkaSyncProducerMetricsF(topic string, err error) {
+	KafkaSyncProducerMetrics.
+		WithLabelValues(topic, lilith.Ternary(isError(err), "true", "false")).
+		Inc()
+}
+
+func KafkaConsumerGroupMetricsF(groupName, topic string, err error, duration float64) {
 	KafkaConsumerGroupMetrics.
 		WithLabelValues(groupName, topic, lilith.Ternary(isError(err), "true", "false")).
 		Observe(duration)
