@@ -2,6 +2,9 @@ package kafka
 
 import (
 	"fmt"
+	"github.com/Shopify/sarama"
+	"log"
+	"os"
 
 	"github.com/nenormalka/freya/conns/kafka/common"
 	"github.com/nenormalka/freya/conns/kafka/consumergroup"
@@ -31,6 +34,10 @@ type (
 func NewKafka(cfg common.Config, logger *zap.Logger) *Kafka {
 	if len(cfg.Addresses) == 0 {
 		return nil
+	}
+
+	if cfg.EnableDebug {
+		sarama.Logger = log.New(os.Stdout, fmt.Sprintf("[%s - KAFKA] - ", cfg.AppName), log.LstdFlags)
 	}
 
 	return &Kafka{

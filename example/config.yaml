@@ -29,3 +29,7 @@ db:
     conn_max_lifetime: 5m
     name: slave
     type: sqlx
+
+kafka:
+  addresses: localhost:29092
+  enable_debug: true

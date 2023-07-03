@@ -70,8 +70,9 @@ type (
 	}
 
 	KafkaConfig struct {
-		Addresses     []string `yaml:"addresses"`
-		SkipUnmarshal []string `yaml:"skip_unmarshal"`
+		Addresses     string `envconfig:"KAFKA_ADDRESSES" yaml:"addresses"`
+		SkipUnmarshal string `envconfig:"KAFKA_SKIP_UNMARSHAL" yaml:"skip_unmarshal"`
+		EnableDebug   bool   `envconfig:"KAFKA_ENABLE_DEBUG" default:"false" yaml:"enable_debug"`
 	}
 
 	DB struct {
@@ -173,7 +174,6 @@ func loadENV(cfg *Config) error {
 	}
 
 	cfg.DB = getDBConnsENV()
-	cfg.Kafka = getKafkaConfig()
 
 	return nil
 }
@@ -199,13 +199,6 @@ func getEnvParamStr(param string, defaultValue string) string {
 	}
 
 	return envParam
-}
-
-func getKafkaConfig() KafkaConfig {
-	return KafkaConfig{
-		Addresses:     strings.Split(getEnvParamStr("KAFKA_ADDRESSES", ""), ","),
-		SkipUnmarshal: strings.Split(getEnvParamStr("KAFKA_SKIP_UNMARSHAL", ""), ","),
-	}
 }
 
 func getDBConnsENV() []DB {
