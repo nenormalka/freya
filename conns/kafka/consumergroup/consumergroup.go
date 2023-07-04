@@ -16,11 +16,11 @@ import (
 
 type (
 	ConsumerGroup struct {
-		name               string
-		skipUnmarshalError map[common.Topic]struct{}
-		topics             common.Topics
-		handlers           map[common.Topic][]common.MessageHandler
-		closed             chan struct{}
+		name       string
+		skipErrors map[common.Topic]struct{}
+		topics     common.Topics
+		handlers   map[common.Topic][]common.MessageHandler
+		closed     chan struct{}
 
 		logger  *zap.Logger
 		config  *sarama.Config
@@ -61,14 +61,14 @@ func NewConsumerGroup(
 	}
 
 	cg := &ConsumerGroup{
-		name:               name,
-		config:             sarama.NewConfig(),
-		skipUnmarshalError: cfg.SkipUnmarshalErrors,
-		logger:             logger,
-		handlers:           make(map[common.Topic][]common.MessageHandler),
-		closed:             make(chan struct{}),
-		wg:                 &wait.Group{},
-		mu:                 &sync.RWMutex{},
+		name:       name,
+		config:     sarama.NewConfig(),
+		skipErrors: cfg.SkipErrors,
+		logger:     logger,
+		handlers:   make(map[common.Topic][]common.MessageHandler),
+		closed:     make(chan struct{}),
+		wg:         &wait.Group{},
+		mu:         &sync.RWMutex{},
 		errFunc: func(err error) {
 			if err != nil {
 				logger.Error(fmt.Sprintf("consume on topic %s", name), zap.Error(err))
@@ -141,7 +141,7 @@ func (cg *ConsumerGroup) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sa
 
 				types.KafkaConsumerGroupMetricsF(cg.name, msg.Topic, err, time.Since(start).Seconds())
 
-				if _, ok = cg.skipUnmarshalError[common.Topic(claim.Topic())]; ok {
+				if _, ok = cg.skipErrors[common.Topic(claim.Topic())]; ok {
 					continue
 				}
 

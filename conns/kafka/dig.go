@@ -19,17 +19,17 @@ func CreateConfig(cfg *config.Config) common.Config {
 
 	addrs := strings.Split(cfg.Kafka.Addresses, ",")
 
-	skipUnmarshal := make(map[common.Topic]struct{})
-	for _, topic := range strings.Split(cfg.Kafka.SkipUnmarshal, ",") {
+	skipErrors := make(map[common.Topic]struct{})
+	for _, topic := range strings.Split(cfg.Kafka.SkipErrors, ",") {
 		if topic != "" {
-			skipUnmarshal[common.Topic(topic)] = struct{}{}
+			skipErrors[common.Topic(topic)] = struct{}{}
 		}
 	}
 
 	return common.Config{
-		Addresses:           addrs,
-		SkipUnmarshalErrors: skipUnmarshal,
-		EnableDebug:         cfg.Kafka.EnableDebug,
-		AppName:             cfg.AppName,
+		Addresses:   addrs,
+		SkipErrors:  skipErrors,
+		EnableDebug: cfg.Kafka.EnableDebug,
+		AppName:     cfg.AppName,
 	}
 }

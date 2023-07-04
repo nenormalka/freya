@@ -2,9 +2,9 @@ package common
 
 type (
 	Config struct {
-		Addresses           []string
-		SkipUnmarshalErrors map[Topic]struct{}
-		EnableDebug         bool
-		AppName             string
+		Addresses   []string
+		SkipErrors  map[Topic]struct{}
+		EnableDebug bool
+		AppName     string
 	}
 )

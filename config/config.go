@@ -70,9 +70,9 @@ type (
 	}
 
 	KafkaConfig struct {
-		Addresses     string `envconfig:"KAFKA_ADDRESSES" yaml:"addresses"`
-		SkipUnmarshal string `envconfig:"KAFKA_SKIP_UNMARSHAL" yaml:"skip_unmarshal"`
-		EnableDebug   bool   `envconfig:"KAFKA_ENABLE_DEBUG" default:"false" yaml:"enable_debug"`
+		Addresses   string `envconfig:"KAFKA_ADDRESSES" yaml:"addresses"`
+		SkipErrors  string `envconfig:"KAFKA_SKIP_ERRORS" yaml:"skip_errors"`
+		EnableDebug bool   `envconfig:"KAFKA_ENABLE_DEBUG" default:"false" yaml:"enable_debug"`
 	}
 
 	DB struct {
