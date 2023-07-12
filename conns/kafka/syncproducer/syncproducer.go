@@ -17,11 +17,31 @@ type (
 	}
 
 	SyncProducerOption func(sp *SyncProducer)
+
+	SendOptions func(msg *sarama.ProducerMessage)
 )
 
 func ConfigOption(cfg *sarama.Config) SyncProducerOption {
 	return func(sp *SyncProducer) {
 		sp.config = cfg
+	}
+}
+
+func PartitionKeyOption(partitionKey string) SendOptions {
+	return func(msg *sarama.ProducerMessage) {
+		msg.Key = sarama.StringEncoder(partitionKey)
+	}
+}
+
+func HeadersOption(headers []sarama.RecordHeader) SendOptions {
+	return func(msg *sarama.ProducerMessage) {
+		msg.Headers = headers
+	}
+}
+
+func MetadataOption(data any) SendOptions {
+	return func(msg *sarama.ProducerMessage) {
+		msg.Metadata = data
 	}
 }
 
@@ -60,16 +80,32 @@ func NewSyncProducer(
 	return sp, nil
 }
 
-func (sp *SyncProducer) Send(topic string, message []byte) error {
-	_, _, err := sp.pr.SendMessage(&sarama.ProducerMessage{
+func (sp *SyncProducer) Send(topic string, message []byte, opts ...SendOptions) error {
+	msg := &sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.StringEncoder(message),
-	})
+	}
+
+	for _, opt := range opts {
+		opt(msg)
+	}
+
+	err := sp.sendMessage(topic, msg)
+
+	if err != nil {
+		return fmt.Errorf("kafka send message err: %w", err)
+	}
+
+	return nil
+}
+
+func (sp *SyncProducer) sendMessage(topic string, msg *sarama.ProducerMessage) error {
+	_, _, err := sp.pr.SendMessage(msg)
 
 	types.KafkaSyncProducerMetricsF(topic, err)
 
 	if err != nil {
-		return fmt.Errorf("kafka send message err: %w", err)
+		return fmt.Errorf("send message err: %w", err)
 	}
 
 	return nil

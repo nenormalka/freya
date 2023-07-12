@@ -21,7 +21,7 @@ type (
 	}
 
 	SyncProducer interface {
-		Send(topic string, message []byte) error
+		Send(topic string, message []byte, opts ...syncproducer.SendOptions) error
 		Close() error
 	}
 
