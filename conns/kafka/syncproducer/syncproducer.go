@@ -90,16 +90,6 @@ func (sp *SyncProducer) Send(topic string, message []byte, opts ...SendOptions) 
 		opt(msg)
 	}
 
-	err := sp.sendMessage(topic, msg)
-
-	if err != nil {
-		return fmt.Errorf("kafka send message err: %w", err)
-	}
-
-	return nil
-}
-
-func (sp *SyncProducer) sendMessage(topic string, msg *sarama.ProducerMessage) error {
 	_, _, err := sp.pr.SendMessage(msg)
 
 	types.KafkaSyncProducerMetricsF(topic, err)
