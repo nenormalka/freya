@@ -6,6 +6,7 @@ import (
 
 	"github.com/nenormalka/freya/conns/connectors"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"go.elastic.co/apm/module/apmpgx/v2"
 )
@@ -50,6 +51,10 @@ func newPgxPool(
 	c.MinConns = int32(cfg.MaxIdleConnections)
 	c.MaxConns = int32(cfg.MaxOpenConnections)
 	c.MaxConnLifetime = cfg.ConnMaxLifetime
+	c.BeforeConnect = func(ctx context.Context, cfg *pgx.ConnConfig) error {
+		cfg.PreferSimpleProtocol = true
+		return nil
+	}
 
 	pool, err := pgxpool.ConnectConfig(ctx, c)
 	if err != nil {
