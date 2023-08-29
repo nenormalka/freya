@@ -39,6 +39,7 @@ func NewHTTP(config Config, logger *zap.Logger, customServerList CustomServerLis
 	r.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	r.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	r.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	r.Handle("/debug/pprof/{cmd}", http.HandlerFunc(pprof.Index))
 
 	r.Handle("/metrics", promhttp.Handler())
 
