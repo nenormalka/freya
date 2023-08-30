@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -52,7 +53,7 @@ func StartServerWithWaiting(ctx context.Context, f func(errCh chan error)) error
 }
 
 func CheckAddr(addr string) string {
-	if addr == "" || addr[0] == ':' {
+	if addr == "" || strings.Contains(addr, ":") {
 		return addr
 	}
 
