@@ -3,6 +3,7 @@ package metadata
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 
 	v "github.com/hashicorp/go-version"
@@ -31,6 +32,11 @@ const (
 	AppInfoFieldPlatformOSVersion = "platform_os_version"
 	AppInfoFieldBuild             = "build"
 	AppInfoFieldPlatform          = "platform"
+)
+
+const (
+	featurePrefix = "feature-toggle-%d"
+	enabledValue  = "enabled"
 )
 
 const (
@@ -115,4 +121,22 @@ func GetDataFromCtx(ctx context.Context, key string) (string, error) {
 	}
 
 	return dates[0], nil
+}
+
+func FeatureToggleIsEnabled(ctx context.Context, toggle int) bool {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return false
+	}
+
+	dates, ok := md[fmt.Sprintf(featurePrefix, toggle)]
+	if !ok {
+		return false
+	}
+
+	if len(dates) == 0 {
+		return false
+	}
+
+	return dates[0] == enabledValue
 }

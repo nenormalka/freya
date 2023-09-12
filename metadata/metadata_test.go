@@ -276,3 +276,53 @@ func TestCompareVersions(t *testing.T) {
 		})
 	}
 }
+
+func TestFeatureToggleIsEnabled(t *testing.T) {
+	for name, tt := range map[string]struct {
+		ctx    context.Context
+		toggle int
+		want   bool
+	}{
+		"empty metadata": {
+			ctx:    context.Background(),
+			toggle: 1,
+			want:   false,
+		},
+		"wrong toggle": {
+			ctx: func() context.Context {
+				ctx := context.Background()
+				return metadata.NewIncomingContext(ctx, metadata.MD{
+					"feature-toggle-1": []string{"enabled"},
+				})
+			}(),
+			toggle: 2,
+			want:   false,
+		},
+		"toggle disabled": {
+			ctx: func() context.Context {
+				ctx := context.Background()
+				return metadata.NewIncomingContext(ctx, metadata.MD{
+					"feature-toggle-1": []string{"disabled"},
+				})
+			}(),
+			toggle: 1,
+			want:   false,
+		},
+		"toggle enabled": {
+			ctx: func() context.Context {
+				ctx := context.Background()
+				return metadata.NewIncomingContext(ctx, metadata.MD{
+					"feature-toggle-1": []string{"enabled"},
+				})
+			}(),
+			toggle: 1,
+			want:   true,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got := FeatureToggleIsEnabled(tt.ctx, tt.toggle); got != tt.want {
+				t.Errorf("FeatureToggleIsEnabled() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
