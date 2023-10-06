@@ -4,6 +4,7 @@ env: development
 log_level: info
 app_name: example-service
 debug_log: true
+enable_server_metrics: true
 
 grpc:
   listen_addr: :7070
