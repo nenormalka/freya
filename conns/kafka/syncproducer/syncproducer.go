@@ -2,10 +2,11 @@ package syncproducer
 
 import (
 	"fmt"
+
 	"github.com/nenormalka/freya/conns/kafka/common"
 	"github.com/nenormalka/freya/types"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"go.uber.org/zap"
 )
 

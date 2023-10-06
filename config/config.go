@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/nenormalka/freya/conns/connectors"
+	"github.com/nenormalka/freya/types"
 
 	"github.com/kelseyhightower/envconfig"
 	"gopkg.in/yaml.v3"
@@ -35,7 +36,8 @@ type (
 		AppName   string `envconfig:"APP_NAME" yaml:"app_name"`
 
 		// DebugLog включает/выключает полные логи ответов (response payload).
-		DebugLog bool `envconfig:"DEBUG_LOG" default:"false" yaml:"debug_log"`
+		DebugLog            bool `envconfig:"DEBUG_LOG" default:"false" yaml:"debug_log"`
+		EnableServerMetrics bool `envconfig:"ENABLE_SERVER_METRICS" default:"true" yaml:"enable_server_metrics"`
 	}
 
 	Sentry struct {
@@ -110,6 +112,8 @@ func NewConfig(configurators []Configure, releaseID ReleaseID) (*Config, error) 
 			return nil, fmt.Errorf("create config err %w", err)
 		}
 	}
+
+	types.SetApplicationMetrics(cfg.ReleaseID)
 
 	return cfg, nil
 }

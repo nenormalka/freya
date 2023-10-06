@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"time"
 
+	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/jackc/pgx/v4"
-
 	lilith "github.com/nenormalka/lilith/methods"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -28,12 +28,6 @@ var (
 		Name:      "error_total",
 		Help:      "Number of db errors.",
 	}, []string{"query_name"})
-
-	GRPCErrorMetrics = promauto.NewCounter(prometheus.CounterOpts{
-		Namespace: "grpc",
-		Name:      "error_total",
-		Help:      "Number of grpc errors.",
-	})
 
 	GRPCPanicMetrics = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: "grpc",
@@ -60,25 +54,38 @@ var (
 		},
 		[]string{"topic", "error"},
 	)
+
+	GaugeAppState = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "application",
+			Subsystem: "app",
+			Name:      "state",
+			Help:      "Version and env of application",
+		}, []string{"version", "start_date"},
+	)
+
+	ServerGRPCMetrics = grpcprom.NewServerMetrics(
+		grpcprom.WithServerHandlingTimeHistogram(),
+	)
 )
+
+func SetApplicationMetrics(version string) {
+	GaugeAppState.WithLabelValues(version, time.Now().String()).Set(1)
+}
 
 func GRPCPanicInc() {
 	GRPCPanicMetrics.Inc()
 }
 
-func GRPCErrorInc() {
-	GRPCErrorMetrics.Inc()
-}
-
 func KafkaSyncProducerMetricsF(topic string, err error) {
 	KafkaSyncProducerMetrics.
-		WithLabelValues(topic, lilith.Ternary(isError(err), "true", "false")).
+		WithLabelValues(topic, errToBoolString(err)).
 		Inc()
 }
 
 func KafkaConsumerGroupMetricsF(groupName, topic string, err error, duration float64) {
 	KafkaConsumerGroupMetrics.
-		WithLabelValues(groupName, topic, lilith.Ternary(isError(err), "true", "false")).
+		WithLabelValues(groupName, topic, errToBoolString(err)).
 		Observe(duration)
 }
 
@@ -89,7 +96,7 @@ func WithSQLMetrics(
 	var err error
 	defer func(start time.Time) {
 		DBMetrics.
-			WithLabelValues(queryName, serviceName, lilith.Ternary(isError(err), "true", "false")).
+			WithLabelValues(queryName, serviceName, errToBoolString(err)).
 			Observe(time.Since(start).Seconds())
 	}(time.Now())
 
@@ -103,6 +110,10 @@ func WithSQLMetrics(
 	}
 
 	return err
+}
+
+func errToBoolString(err error) string {
+	return lilith.Ternary(isError(err), "true", "false")
 }
 
 func isError(err error) bool {

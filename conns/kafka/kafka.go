@@ -2,7 +2,6 @@ package kafka
 
 import (
 	"fmt"
-	"github.com/Shopify/sarama"
 	"log"
 	"os"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/nenormalka/freya/conns/kafka/consumergroup"
 	"github.com/nenormalka/freya/conns/kafka/syncproducer"
 
+	"github.com/IBM/sarama"
 	"go.uber.org/zap"
 )
 

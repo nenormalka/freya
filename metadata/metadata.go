@@ -18,12 +18,28 @@ type (
 	VersionDataError error
 
 	VersionData map[PlatformType]string
+
+	Platform interface {
+		IsValid() bool
+		IsMobile() bool
+		IsIos() bool
+		IsAndroid() bool
+		IsWeb() bool
+		IsMobileWeb() bool
+		IsDesktopWeb() bool
+		Platform() string
+	}
 )
 
 const (
-	PlatformTypeIOS     PlatformType = "ios"
-	PlatformTypeANDROID PlatformType = "android"
-	PlatformTypeWEB     PlatformType = "web"
+	PlatformTypeIOS         PlatformType = "ios"
+	PlatformTypeANDROID     PlatformType = "android"
+	PlatformTypeWEB         PlatformType = "web"
+	PlatformTypeWEBMobile   PlatformType = "web-mobile"
+	PlatformTypeWEBMobile2  PlatformType = "web_mobile"
+	PlatformTypeDesktop     PlatformType = "desktop"
+	PlatformTypeWebDesktop  PlatformType = "web-desktop"
+	PlatformTypeWebDesktop2 PlatformType = "web_desktop"
 )
 
 const (
@@ -35,15 +51,15 @@ const (
 )
 
 const (
-	featurePrefix = "feature-toggle-%d"
-	enabledValue  = "enabled"
-)
-
-const (
 	RatioEqual Ratio = 0
 	RatioGreat Ratio = 1
 	RatioLess  Ratio = -1
 	RatioError Ratio = math.MaxInt
+)
+
+const (
+	featurePrefix = "feature-toggle-%d"
+	enabledValue  = "enabled"
 )
 
 var (
@@ -62,6 +78,11 @@ func GetAppVersion(ctx context.Context) (string, error) {
 
 func GetPlatform(ctx context.Context) (string, error) {
 	return GetDataFromCtx(ctx, AppInfoFieldPlatform)
+}
+
+func GetPlatformType(ctx context.Context) (Platform, error) {
+	platform, err := GetDataFromCtx(ctx, AppInfoFieldPlatform)
+	return PlatformType(platform), err
 }
 
 func GetPlatformOS(ctx context.Context) (string, error) {
@@ -139,4 +160,41 @@ func FeatureToggleIsEnabled(ctx context.Context, toggle int) bool {
 	}
 
 	return dates[0] == enabledValue
+}
+
+func (p PlatformType) Platform() string {
+	return string(p)
+}
+
+func (p PlatformType) IsValid() bool {
+	return p.IsMobile() || p.IsWeb()
+}
+
+func (p PlatformType) IsMobile() bool {
+	return p.IsIos() || p.IsAndroid()
+}
+
+func (p PlatformType) IsWeb() bool {
+	return p.IsMobileWeb() || p.IsDesktopWeb()
+}
+
+func (p PlatformType) IsIos() bool {
+	return p == PlatformTypeIOS
+}
+
+func (p PlatformType) IsAndroid() bool {
+	return p == PlatformTypeANDROID
+}
+
+func (p PlatformType) IsMobileWeb() bool {
+	return p == PlatformTypeWEBMobile || p == PlatformTypeWEBMobile2
+}
+
+func (p PlatformType) IsDesktopWeb() bool {
+	switch p {
+	case PlatformTypeWEB, PlatformTypeDesktop, PlatformTypeWebDesktop, PlatformTypeWebDesktop2:
+		return true
+	default:
+		return false
+	}
 }

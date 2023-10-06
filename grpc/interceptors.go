@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"runtime/debug"
 	"strings"
 
+	"github.com/nenormalka/freya/types"
+
 	grpczap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpcctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
-	grpcprometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	sentry "github.com/johnbellone/grpc-middleware-sentry"
 	"go.elastic.co/apm/module/apmgrpc/v2"
 	"go.elastic.co/apm/v2"
@@ -21,8 +23,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
-
-	"github.com/nenormalka/freya/types"
 )
 
 const (
@@ -38,17 +38,19 @@ func interceptors(
 	ints := []grpc.UnaryServerInterceptor{
 		apmgrpc.NewUnaryServerInterceptor(apmgrpc.WithRecovery(), apmgrpc.WithTracer(tracer)),
 		grpcctxtags.UnaryServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
-		grpcprometheus.UnaryServerInterceptor,
 		payloadLoggingInterceptor(logger, config),
 		logMetadataInterceptor(logger, config),
-		grpc_recovery.UnaryServerInterceptor(grpc_recovery.WithRecoveryHandler(recFunc)),
 		initSentryInterceptor([]codes.Code{
 			codes.Unknown,
 			codes.DeadlineExceeded,
 			codes.Internal,
 			codes.Unimplemented,
 		}),
-		errorInterceptor(),
+		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(panicInterceptor(logger))),
+	}
+
+	if config.WithServerMetrics {
+		ints = append(ints, types.ServerGRPCMetrics.UnaryServerInterceptor())
 	}
 
 	for _, customInts := range customInterceptors {
@@ -58,24 +60,17 @@ func interceptors(
 	return ints
 }
 
-func recFunc(p any) (err error) {
-	types.GRPCPanicInc()
+func panicInterceptor(logger *zap.Logger) func(p any) (err error) {
+	return func(p any) (err error) {
+		types.GRPCPanicInc()
 
-	return status.Errorf(codes.Internal, "panic triggered: %v", p)
-}
+		logger.Error(
+			"recovered panic",
+			zap.String("panic value", fmt.Sprintf("%v", p)),
+			zap.String("stacktrace", fmt.Sprintf("%+v", debug.Stack())),
+		)
 
-func errorInterceptor() grpc.UnaryServerInterceptor {
-	return func(
-		ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
-	) (
-		resp any, err error,
-	) {
-		resp, err = handler(ctx, req)
-		if err != nil {
-			types.GRPCErrorInc()
-		}
-
-		return resp, err
+		return status.Errorf(codes.Internal, "%s", p)
 	}
 }
 

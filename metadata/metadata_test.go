@@ -326,3 +326,146 @@ func TestFeatureToggleIsEnabled(t *testing.T) {
 		})
 	}
 }
+
+func TestGetPlatformType(t *testing.T) {
+	setPlatform := func(platform string) context.Context {
+		return metadata.NewIncomingContext(context.Background(), metadata.MD{
+			AppInfoFieldPlatform: []string{platform},
+		})
+	}
+
+	for name, tt := range map[string]struct {
+		platform        string
+		wantIsValid     bool
+		wantIsIos       bool
+		wantIsAndroid   bool
+		wantIsWeb       bool
+		wantIsDesktop   bool
+		wantIsMobile    bool
+		wantIsMobileWeb bool
+	}{
+		"empty metadata": {
+			platform:        "",
+			wantIsValid:     false,
+			wantIsIos:       false,
+			wantIsAndroid:   false,
+			wantIsWeb:       false,
+			wantIsDesktop:   false,
+			wantIsMobile:    false,
+			wantIsMobileWeb: false,
+		},
+		"ios": {
+			platform:        "ios",
+			wantIsValid:     true,
+			wantIsIos:       true,
+			wantIsAndroid:   false,
+			wantIsWeb:       false,
+			wantIsDesktop:   false,
+			wantIsMobile:    true,
+			wantIsMobileWeb: false,
+		},
+		"android": {
+			platform:        "android",
+			wantIsValid:     true,
+			wantIsIos:       false,
+			wantIsAndroid:   true,
+			wantIsWeb:       false,
+			wantIsDesktop:   false,
+			wantIsMobile:    true,
+			wantIsMobileWeb: false,
+		},
+		"web": {
+			platform:        "web",
+			wantIsValid:     true,
+			wantIsIos:       false,
+			wantIsAndroid:   false,
+			wantIsWeb:       true,
+			wantIsDesktop:   true,
+			wantIsMobile:    false,
+			wantIsMobileWeb: false,
+		},
+		"web-mobile": {
+			platform:        "web-mobile",
+			wantIsValid:     true,
+			wantIsIos:       false,
+			wantIsAndroid:   false,
+			wantIsWeb:       true,
+			wantIsDesktop:   false,
+			wantIsMobile:    false,
+			wantIsMobileWeb: true,
+		},
+		"web_mobile": {
+			platform:        "web-mobile",
+			wantIsValid:     true,
+			wantIsIos:       false,
+			wantIsAndroid:   false,
+			wantIsWeb:       true,
+			wantIsDesktop:   false,
+			wantIsMobile:    false,
+			wantIsMobileWeb: true,
+		},
+		"desktop": {
+			platform:        "desktop",
+			wantIsValid:     true,
+			wantIsIos:       false,
+			wantIsAndroid:   false,
+			wantIsWeb:       true,
+			wantIsDesktop:   true,
+			wantIsMobile:    false,
+			wantIsMobileWeb: false,
+		},
+		"web-desktop": {
+			platform:        "web-desktop",
+			wantIsValid:     true,
+			wantIsIos:       false,
+			wantIsAndroid:   false,
+			wantIsWeb:       true,
+			wantIsDesktop:   true,
+			wantIsMobile:    false,
+			wantIsMobileWeb: false,
+		},
+		"web_desktop": {
+			platform:        "web_desktop",
+			wantIsValid:     true,
+			wantIsIos:       false,
+			wantIsAndroid:   false,
+			wantIsWeb:       true,
+			wantIsDesktop:   true,
+			wantIsMobile:    false,
+			wantIsMobileWeb: false,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got, err := GetPlatformType(setPlatform(tt.platform))
+			require.Nil(t, err)
+
+			if got.IsValid() != tt.wantIsValid {
+				t.Errorf("IsValid() = %v, want %v", got.IsValid(), tt.wantIsValid)
+			}
+
+			if got.IsIos() != tt.wantIsIos {
+				t.Errorf("IsIos() = %v, want %v", got.IsIos(), tt.wantIsIos)
+			}
+
+			if got.IsAndroid() != tt.wantIsAndroid {
+				t.Errorf("IsAndroid() = %v, want %v", got.IsAndroid(), tt.wantIsAndroid)
+			}
+
+			if got.IsMobile() != tt.wantIsMobile {
+				t.Errorf("IsMobile() = %v, want %v", got.IsMobile(), tt.wantIsMobile)
+			}
+
+			if got.IsMobileWeb() != tt.wantIsMobileWeb {
+				t.Errorf("IsMobileWeb() = %v, want %v", got.IsMobileWeb(), tt.wantIsMobileWeb)
+			}
+
+			if got.IsDesktopWeb() != tt.wantIsDesktop {
+				t.Errorf("IsDesktopWeb() = %v, want %v", got.IsDesktopWeb(), tt.wantIsDesktop)
+			}
+
+			if got.IsWeb() != tt.wantIsWeb {
+				t.Errorf("IsWeb() = %v, want %v", got.IsWeb(), tt.wantIsWeb)
+			}
+		})
+	}
+}

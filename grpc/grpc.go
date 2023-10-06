@@ -7,6 +7,7 @@ import (
 
 	"github.com/nenormalka/freya/types"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.elastic.co/apm/v2"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
@@ -43,6 +44,10 @@ func NewGRPC(
 	logger *zap.Logger,
 	tracer *apm.Tracer,
 ) *Server {
+	if cfg.WithServerMetrics {
+		prometheus.MustRegister(types.ServerGRPCMetrics)
+	}
+
 	grpcServer := grpc.NewServer(
 		grpc.KeepaliveParams(
 			keepalive.ServerParameters{
@@ -61,6 +66,10 @@ func NewGRPC(
 	for _, def := range p.GRPCDefinitions {
 		logger.Info(fmt.Sprintf("register grpc service: `%T`", def.Implementation))
 		grpcServer.RegisterService(def.Description, def.Implementation)
+	}
+
+	if cfg.WithServerMetrics {
+		types.ServerGRPCMetrics.InitializeMetrics(grpcServer)
 	}
 
 	if cfg.WithReflection {
