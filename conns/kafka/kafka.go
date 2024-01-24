@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -16,8 +17,10 @@ import (
 type (
 	ConsumerGroup interface {
 		AddHandler(topic common.Topic, hm common.MessageHandler)
-		Consume()
+		Consume() error
 		Close() error
+		PauseAll()
+		ResumeAll()
 	}
 
 	SyncProducer interface {
@@ -62,4 +65,26 @@ func (k *Kafka) NewSyncProducer(opts ...syncproducer.SyncProducerOption) (SyncPr
 	}
 
 	return sp, nil
+}
+
+func AddTypedHandler[T any](
+	cg ConsumerGroup,
+	topic common.Topic,
+	f common.MessageHandlerTyped[T],
+) error {
+	if cg == nil {
+		return common.ErrEmptyConsumerGroup
+	}
+
+	cg.AddHandler(topic, func(msg json.RawMessage) error {
+		var t T
+
+		if err := json.Unmarshal(msg, &t); err != nil {
+			return fmt.Errorf("unmarshal message from topic %s err: %w", topic, err)
+		}
+
+		return f(t)
+	})
+
+	return nil
 }

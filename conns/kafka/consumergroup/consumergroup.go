@@ -8,6 +8,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/chapsuk/wait"
+	"github.com/rcrowley/go-metrics"
 	"go.uber.org/zap"
 
 	"github.com/nenormalka/freya/conns/kafka/common"
@@ -60,6 +61,8 @@ func NewConsumerGroup(
 		return nil, common.ErrEmptyAddresses
 	}
 
+	metrics.UseNilMetrics = true
+
 	cg := &ConsumerGroup{
 		name:       name,
 		config:     sarama.NewConfig(),
@@ -108,7 +111,15 @@ func (cg *ConsumerGroup) AddHandler(topic common.Topic, hm common.MessageHandler
 	cg.topics = append(cg.topics, topic)
 }
 
-func (cg *ConsumerGroup) Consume() {
+func (cg *ConsumerGroup) Consume() error {
+	if len(cg.handlers) == 0 {
+		return common.ErrEmptyHandlers
+	}
+
+	if len(cg.topics) == 0 {
+		return common.ErrEmptyTopics
+	}
+
 	cg.wg.Add(func() {
 		for {
 			select {
@@ -122,6 +133,8 @@ func (cg *ConsumerGroup) Consume() {
 			}
 		}
 	})
+
+	return nil
 }
 
 func (cg *ConsumerGroup) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
@@ -191,6 +204,14 @@ func (cg *ConsumerGroup) Close() error {
 	}
 
 	return nil
+}
+
+func (cg *ConsumerGroup) PauseAll() {
+	cg.group.PauseAll()
+}
+
+func (cg *ConsumerGroup) ResumeAll() {
+	cg.group.ResumeAll()
 }
 
 func (cg *ConsumerGroup) serveErrors() {

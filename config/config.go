@@ -17,18 +17,17 @@ import (
 )
 
 type (
-	ReleaseID string
-
 	Configure func(cfg *Config) error
 
 	Config struct {
-		HTTP          HTTPServerConfig `yaml:"http"`
-		GRPC          GRPCServerConfig `yaml:"grpc"`
-		APM           ElasticAPMConfig `yaml:"apm"`
-		Kafka         KafkaConfig      `yaml:"kafka"`
-		DB            []DB             `yaml:"db"`
-		ElasticSearch ElasticSearch    `yaml:"elastic_search"`
-		Sentry        Sentry           `yaml:"sentry"`
+		HTTP            HTTPServerConfig `yaml:"http"`
+		GRPC            GRPCServerConfig `yaml:"grpc"`
+		APM             ElasticAPMConfig `yaml:"apm"`
+		Kafka           KafkaConfig      `yaml:"kafka"`
+		DB              []DB             `yaml:"db"`
+		ElasticSearch   ElasticSearch    `yaml:"elastic_search"`
+		Sentry          Sentry           `yaml:"sentry"`
+		CouchbaseConfig CouchbaseConfig  `yaml:"couchbase"`
 
 		ReleaseID string
 		Env       string `envconfig:"ENV" default:"development" required:"true" yaml:"env"`
@@ -86,6 +85,14 @@ type (
 		MaxIdleConnections int           `yaml:"max_idle_connections"`
 		ConnMaxLifetime    time.Duration `yaml:"conn_max_lifetime"`
 	}
+
+	CouchbaseConfig struct {
+		DSN         string `envconfig:"COUCHBASE_DSN" yaml:"dsn""`
+		User        string `envconfig:"COUCHBASE_USER" yaml:"user"`
+		Password    string `envconfig:"COUCHBASE_PWD" yaml:"password"`
+		Buckets     string `envconfig:"COUCHBASE_BUCKET" yaml:"bucket"`
+		EnableDebug bool   `envconfig:"COUCHBASE_ENABLE_DEBUG" default:"false" yaml:"enable_debug"`
+	}
 )
 
 const (
@@ -103,9 +110,11 @@ var (
 	errConfigFileNotExists = errors.New("config file not exists")
 )
 
-func NewConfig(configurators []Configure, releaseID ReleaseID) (*Config, error) {
+func NewConfig(configurators []Configure, info *types.AppInfo) (*Config, error) {
+	types.SetAppInfo(info)
+
 	cfg := &Config{}
-	cfg.ReleaseID = string(releaseID)
+	cfg.ReleaseID = types.GetAppVersion()
 
 	for _, configurator := range configurators {
 		if err := configurator(cfg); err != nil {
@@ -113,7 +122,7 @@ func NewConfig(configurators []Configure, releaseID ReleaseID) (*Config, error) 
 		}
 	}
 
-	types.SetApplicationMetrics(cfg.ReleaseID)
+	types.SetApplicationMetrics()
 
 	return cfg, nil
 }

@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
 type (
@@ -24,15 +25,18 @@ type (
 		Implementation any
 	}
 
+	ServerOpt func(*Config)
+
 	Params struct {
 		dig.In
 
 		GRPCDefinitions             []Definition                    `group:"grpc_impl"`
 		GRPCUnaryCustomInterceptors [][]grpc.UnaryServerInterceptor `group:"grpc_unary_interceptor"`
+		ServerOpt                   []ServerOpt                     `group:"grpc_server_opt"`
 	}
 
 	Server struct {
-		cfg    Config
+		cfg    *Config
 		server *grpc.Server
 		logger *zap.Logger
 	}
@@ -40,10 +44,14 @@ type (
 
 func NewGRPC(
 	p Params,
-	cfg Config,
+	cfg *Config,
 	logger *zap.Logger,
 	tracer *apm.Tracer,
 ) *Server {
+	for _, opt := range p.ServerOpt {
+		opt(cfg)
+	}
+
 	if cfg.WithServerMetrics {
 		prometheus.MustRegister(types.ServerGRPCMetrics)
 	}
@@ -86,7 +94,7 @@ func NewGRPC(
 func (s *Server) Start(ctx context.Context) error {
 	s.logger.Info("GRPC server started, listening on address: ", zap.String("grpc start", s.cfg.ListenAddr))
 
-	return types.StartServerWithWaiting(ctx, func(errCh chan error) {
+	return types.StartServerWithWaiting(ctx, s.logger, func(errCh chan error) {
 		listener, err := net.Listen("tcp", s.cfg.ListenAddr)
 		if err != nil {
 			s.logger.Error("create grpc listener err", zap.Error(err))
@@ -107,4 +115,10 @@ func (s *Server) Start(ctx context.Context) error {
 func (s *Server) Stop(_ context.Context) error {
 	s.server.GracefulStop()
 	return nil
+}
+
+func WithSensitiveData(sensitiveData *protoimpl.ExtensionInfo) ServerOpt {
+	return func(cfg *Config) {
+		cfg.SensitiveData = sensitiveData
+	}
 }

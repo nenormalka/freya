@@ -11,6 +11,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+type (
+	customFunc func() error
+)
+
 var (
 	DBMetrics = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -29,13 +33,43 @@ var (
 		Help:      "Number of db errors.",
 	}, []string{"query_name"})
 
+	CouchbaseMetrics = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "connections",
+			Subsystem: "couchbase",
+			Name:      "call_duration_seconds",
+			Help:      "query duration seconds",
+			Buckets:   []float64{.005, .01, .025, .05, .075, .1, .15, .2, .25, .5, 1, 2.5},
+		}, []string{"bucket", "collection", "query", "service", "error"},
+	)
+
+	HTTPMetrics = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "http",
+			Subsystem: "requests",
+			Name:      "call_duration_seconds",
+			Help:      "request duration seconds",
+			Buckets:   []float64{.005, .01, .025, .05, .075, .1, .15, .2, .25, .5, 1, 2.5},
+		}, []string{"request_name", "error"},
+	)
+
+	ElasticMetrics = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "connections",
+			Subsystem: "elastic",
+			Name:      "call_duration_seconds",
+			Help:      "request duration seconds",
+			Buckets:   []float64{.005, .01, .025, .05, .075, .1, .15, .2, .25, .5, 1, 2.5},
+		}, []string{"query", "error"},
+	)
+
 	GRPCPanicMetrics = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: "grpc",
 		Name:      "panic_total",
 		Help:      "Number of grpc panic.",
 	})
 
-	KafkaConsumerGroupMetrics = prometheus.NewHistogramVec(
+	KafkaConsumerGroupMetrics = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "kafka",
 			Subsystem: "consumer_group",
@@ -45,7 +79,7 @@ var (
 		[]string{"consumer_group", "topic", "error"},
 	)
 
-	KafkaSyncProducerMetrics = prometheus.NewCounterVec(
+	KafkaSyncProducerMetrics = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "kafka",
 			Subsystem: "sync_producer",
@@ -60,8 +94,14 @@ var (
 			Namespace: "application",
 			Subsystem: "app",
 			Name:      "state",
-			Help:      "Version and env of application",
-		}, []string{"version", "start_date"},
+			Help:      "Versions and env of application",
+		}, []string{
+			"app_version",
+			"go_version",
+			"proto_version",
+			"freya_version",
+			"start_date",
+		},
 	)
 
 	ServerGRPCMetrics = grpcprom.NewServerMetrics(
@@ -69,8 +109,14 @@ var (
 	)
 )
 
-func SetApplicationMetrics(version string) {
-	GaugeAppState.WithLabelValues(version, time.Now().String()).Set(1)
+func SetApplicationMetrics() {
+	GaugeAppState.WithLabelValues(
+		GetAppVersion(),
+		GetGoVersion(),
+		GetProtoVersion(),
+		GetFreyaVersion(),
+		time.Now().Format("2006-01-02 15:04:05"),
+	).Set(1)
 }
 
 func GRPCPanicInc() {
@@ -89,9 +135,54 @@ func KafkaConsumerGroupMetricsF(groupName, topic string, err error, duration flo
 		Observe(duration)
 }
 
+func WithHTTPMetrics(
+	requestName string,
+	callFunc customFunc,
+) error {
+	var err error
+	defer func(start time.Time) {
+		HTTPMetrics.
+			WithLabelValues(requestName, errToBoolString(err)).
+			Observe(time.Since(start).Seconds())
+	}(time.Now())
+
+	err = callFunc()
+	return err
+}
+
+func WithElasticMetrics(
+	requestName string,
+	callFunc customFunc,
+) error {
+	var err error
+	defer func(start time.Time) {
+		ElasticMetrics.
+			WithLabelValues(requestName, errToBoolString(err)).
+			Observe(time.Since(start).Seconds())
+	}(time.Now())
+
+	err = callFunc()
+	return err
+}
+
+func WithCouchbaseMetrics(
+	bucketName, collectionName, query, serviceName string,
+	callFunc customFunc,
+) error {
+	var err error
+	defer func(start time.Time) {
+		CouchbaseMetrics.
+			WithLabelValues(bucketName, collectionName, query, serviceName, errToBoolString(err)).
+			Observe(time.Since(start).Seconds())
+	}(time.Now())
+
+	err = callFunc()
+	return err
+}
+
 func WithSQLMetrics(
 	queryName, serviceName string,
-	callFunc func() error,
+	callFunc customFunc,
 ) error {
 	var err error
 	defer func(start time.Time) {

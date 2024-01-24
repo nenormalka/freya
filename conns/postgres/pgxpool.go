@@ -51,6 +51,7 @@ func newPgxPool(
 	c.MinConns = int32(cfg.MaxIdleConnections)
 	c.MaxConns = int32(cfg.MaxOpenConnections)
 	c.MaxConnLifetime = cfg.ConnMaxLifetime
+
 	c.BeforeConnect = func(ctx context.Context, cfg *pgx.ConnConfig) error {
 		cfg.PreferSimpleProtocol = true
 		return nil

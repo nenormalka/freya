@@ -1,7 +1,8 @@
 package service
 
 import (
-	"github.com/nenormalka/freya/example/repo"
+	"freya/example/repo"
+
 	"github.com/nenormalka/freya/types"
 
 	"go.uber.org/dig"

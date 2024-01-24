@@ -29,9 +29,25 @@ const (
 	flushTTL = 2 * time.Second
 )
 
-type Engine struct {
-	container *dig.Container
-}
+type (
+	ServiceAdapterIn struct {
+		dig.In
+
+		Services []types.Runnable `group:"services"`
+		Servers  []types.Runnable `group:"servers"`
+	}
+
+	ServiceAdapterOut struct {
+		dig.Out
+
+		ServiceList types.ServiceList
+		ServerList  types.ServerList
+	}
+
+	Engine struct {
+		container *dig.Container
+	}
+)
 
 var defaultModules = types.Module{
 	{CreateFunc: ServiceAdapter},
@@ -47,6 +63,13 @@ var defaultModules = types.Module{
 	Append(apm.Module).
 	Append(sentry.Module).
 	Append(conns.Module)
+
+func ServiceAdapter(in ServiceAdapterIn) ServiceAdapterOut {
+	return ServiceAdapterOut{
+		ServiceList: in.Services,
+		ServerList:  in.Servers,
+	}
+}
 
 func NewShutdownContext() context.Context {
 	return grace.ShutdownContext(context.Background())
@@ -81,7 +104,7 @@ func (e *Engine) provide(m types.Module) {
 func (e *Engine) mainFunc() any {
 	return func(
 		ctx context.Context,
-		app types.App,
+		app *App,
 		logger *zap.Logger,
 		tracer *apm2.Tracer,
 		conns *conns.Conns,

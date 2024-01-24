@@ -43,9 +43,9 @@ func stop(ctx context.Context, pool []Runnable, logger *zap.Logger, name runnabl
 
 	var wg sync.WaitGroup
 
-	for _, r := range pool {
-		wg.Add(1)
+	wg.Add(len(pool))
 
+	for _, r := range pool {
 		go func(r Runnable) {
 			defer wg.Done()
 

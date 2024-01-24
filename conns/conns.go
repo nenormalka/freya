@@ -2,9 +2,11 @@ package conns
 
 import (
 	"errors"
-	"github.com/nenormalka/freya/conns/kafka"
 
 	"github.com/nenormalka/freya/conns/connectors"
+	"github.com/nenormalka/freya/conns/couchbase"
+	"github.com/nenormalka/freya/conns/elastic"
+	"github.com/nenormalka/freya/conns/kafka"
 	dbtypes "github.com/nenormalka/freya/conns/postgres/types"
 
 	"github.com/doug-martin/goqu/v9"
@@ -16,8 +18,13 @@ import (
 
 type (
 	Conns struct {
+		// logger логгер
+		logger *zap.Logger
+		// elastic клиент для работы с эластиком
+		// Deprecated: elasticConn
 		elastic *elasticsearch.Client
-		logger  *zap.Logger
+		// elastic клиент для работы с эластиком c метриками
+		elasticConn *elastic.ElasticConn
 		// db_name -> коннект, мапа с соединениями к бд, нужна, чтобы закрыть всё при выключении сервиса
 		sqlxPoolDB map[string]*sqlx.DB
 		// db_name -> пул коннектов pgx, мапа с соединениями к бд, нужна, чтобы закрыть всё при выключении сервиса
@@ -31,6 +38,8 @@ type (
 		pgxConns map[string]connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx]
 		// kafka абстракция над кафкой
 		kafka *kafka.Kafka
+		// couchbase абстракция над коучбейсом
+		couchbase *couchbase.Couchbase
 	}
 )
 
@@ -39,27 +48,32 @@ var (
 	errEmptyPool        = errors.New("empty pool")
 	errEmptyConn        = errors.New("empty connection")
 	errEmptyKafka       = errors.New("empty kafka")
+	errEmptyCouchbase   = errors.New("empty couchbase")
 )
 
 func NewConns(
 	logger *zap.Logger,
 	elastic *elasticsearch.Client,
+	elasticConn *elastic.ElasticConn,
 	sqlxPoolDB map[string]*sqlx.DB,
 	pgxPoolDB map[string]*pgxpool.Pool,
 	sqlConns map[string]connectors.DBConnector[*sqlx.DB, *sqlx.Tx],
 	goquConns map[string]connectors.DBConnector[*goqu.Database, *goqu.TxDatabase],
 	pgxConns map[string]connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx],
 	kafka *kafka.Kafka,
+	couchbase *couchbase.Couchbase,
 ) *Conns {
 	return &Conns{
-		logger:     logger,
-		elastic:    elastic,
-		sqlxPoolDB: sqlxPoolDB,
-		sqlConns:   sqlConns,
-		goquConns:  goquConns,
-		pgxConns:   pgxConns,
-		pgxPoolDB:  pgxPoolDB,
-		kafka:      kafka,
+		logger:      logger,
+		elastic:     elastic,
+		elasticConn: elasticConn,
+		sqlxPoolDB:  sqlxPoolDB,
+		sqlConns:    sqlConns,
+		goquConns:   goquConns,
+		pgxConns:    pgxConns,
+		pgxPoolDB:   pgxPoolDB,
+		kafka:       kafka,
+		couchbase:   couchbase,
 	}
 }
 
@@ -98,12 +112,30 @@ func (c *Conns) GetKafka() (*kafka.Kafka, error) {
 }
 
 // GetElastic возвращает клиент для работы с эластиком
+// Deprecated: Use GetElasticConn instead
 func (c *Conns) GetElastic() (*elasticsearch.Client, error) {
 	if c.elastic == nil {
 		return nil, errEmptyElasticConn
 	}
 
 	return c.elastic, nil
+}
+
+func (c *Conns) GetElasticConn() (*elastic.ElasticConn, error) {
+	if c.elasticConn == nil {
+		return nil, errEmptyElasticConn
+	}
+
+	return c.elasticConn, nil
+}
+
+// GetCouchbase возвращает абстракцию над коучбейсом
+func (c *Conns) GetCouchbase() (*couchbase.Couchbase, error) {
+	if c.couchbase == nil {
+		return nil, errEmptyCouchbase
+	}
+
+	return c.couchbase, nil
 }
 
 func (c *Conns) Close() {

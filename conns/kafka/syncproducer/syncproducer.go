@@ -2,6 +2,7 @@ package syncproducer
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/nenormalka/freya/conns/kafka/common"
 	"github.com/nenormalka/freya/types"
@@ -10,11 +11,18 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	statusOpen = iota + 1
+	statusClosed
+)
+
 type (
 	SyncProducer struct {
 		logger *zap.Logger
 		pr     sarama.SyncProducer
 		config *sarama.Config
+		status int
+		m      *sync.RWMutex
 	}
 
 	SyncProducerOption func(sp *SyncProducer)
@@ -58,6 +66,8 @@ func NewSyncProducer(
 	sp := &SyncProducer{
 		logger: logger,
 		config: sarama.NewConfig(),
+		m:      &sync.RWMutex{},
+		status: statusOpen,
 	}
 
 	for _, opt := range opts {
@@ -91,6 +101,10 @@ func (sp *SyncProducer) Send(topic string, message []byte, opts ...SendOptions) 
 		opt(msg)
 	}
 
+	if sp.isClosed() {
+		return common.ErrSyncProducerClosed
+	}
+
 	_, _, err := sp.pr.SendMessage(msg)
 
 	types.KafkaSyncProducerMetricsF(topic, err)
@@ -103,9 +117,21 @@ func (sp *SyncProducer) Send(topic string, message []byte, opts ...SendOptions) 
 }
 
 func (sp *SyncProducer) Close() error {
+	sp.m.Lock()
+	defer sp.m.Unlock()
+
+	sp.status = statusClosed
+
 	if err := sp.pr.Close(); err != nil {
 		return fmt.Errorf("kafka sync producer close err: %w", err)
 	}
 
 	return nil
+}
+
+func (sp *SyncProducer) isClosed() bool {
+	sp.m.RLock()
+	defer sp.m.RUnlock()
+
+	return sp.status == statusClosed
 }

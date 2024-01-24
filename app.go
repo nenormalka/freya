@@ -7,7 +7,6 @@ import (
 
 	"github.com/nenormalka/freya/types"
 
-	"go.uber.org/dig"
 	"go.uber.org/zap"
 )
 
@@ -16,21 +15,7 @@ const (
 )
 
 type (
-	ServiceAdapterIn struct {
-		dig.In
-
-		Services []types.Runnable `group:"services"`
-		Servers  []types.Runnable `group:"servers"`
-	}
-
-	ServiceAdapterOut struct {
-		dig.Out
-
-		ServiceList types.ServiceList
-		ServerList  types.ServerList
-	}
-
-	Core struct {
+	App struct {
 		servers  *types.ServerPool
 		services *types.ServicePool
 
@@ -38,26 +23,19 @@ type (
 	}
 )
 
-func ServiceAdapter(in ServiceAdapterIn) ServiceAdapterOut {
-	return ServiceAdapterOut{
-		ServiceList: in.Services,
-		ServerList:  in.Servers,
-	}
-}
-
 func NewApp(
 	servers *types.ServerPool,
 	services *types.ServicePool,
 	logger *zap.Logger,
-) types.App {
-	return &Core{
+) *App {
+	return &App{
 		servers:  servers,
 		services: services,
 		logger:   logger,
 	}
 }
 
-func (c *Core) Run(ctx context.Context) error {
+func (c *App) Run(ctx context.Context) error {
 	c.logger.Info("Services start")
 
 	if err := c.services.Start(ctx); err != nil {

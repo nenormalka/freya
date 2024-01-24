@@ -4,38 +4,17 @@ import (
 	"github.com/gorilla/mux"
 	httpdefault "net/http"
 
-	"github.com/nenormalka/freya/example/service"
-	"github.com/nenormalka/freya/http"
-	"github.com/nenormalka/freya/types"
+	"freya/example/service"
 
-	"go.uber.org/dig"
 	"go.uber.org/zap"
 )
 
-var Module = types.Module{
-	{CreateFunc: newHTTP},
-	{CreateFunc: adapter},
-}
-
 type (
-	AdapterOut struct {
-		dig.Out
-
-		Server http.CustomServer `group:"custom_http_servers"`
+	Server struct {
+		logger  *zap.Logger
+		service *service.Service
 	}
 )
-
-// adapter ...
-func adapter(serv *Server) AdapterOut {
-	return AdapterOut{
-		Server: serv,
-	}
-}
-
-type Server struct {
-	logger  *zap.Logger
-	service *service.Service
-}
 
 func newHTTP(
 	logger *zap.Logger,

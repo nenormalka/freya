@@ -49,3 +49,65 @@ services:
       - KAFKA_CLUSTERS_0_NAME=local
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
       - SERVER_PORT=8081
+
+  couchbase:
+    image: couchbase
+    ports:
+      - "8091-8096:8091-8096"
+      - "11210-11211:11210-11211"
+    expose:
+      - "8091-8096:8091-8096"
+    volumes:
+      - cb_data:/opt/couchbase/var
+
+  couchbase-init:
+    image: curlimages/curl
+    depends_on:
+      - couchbase
+    environment:
+      ADMIN_LOGIN: example
+      ADMIN_PASS: example
+      BUCKET: example
+      LOGIN: example
+      PASS: example
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      sleep 10
+
+      echo -e 'Create couchbase cluster'
+      # https://docs.couchbase.com/server/current/rest-api/rest-initialize-cluster.html#curl-syntax
+      curl -v -X POST http://couchbase:8091/clusterInit \\
+      -d clusterName=dev \\
+      -d services=kv,index,n1ql \\
+      -d username=$${ADMIN_LOGIN} \\
+      -d password=$${ADMIN_PASS} \\
+      -d memoryQuota=256 \\
+      -d indexMemoryQuota=256 \\
+      -d port=SAME
+
+      sleep 1
+
+      echo -e 'Create bucket'
+      # https://docs.couchbase.com/server/current/rest-api/rest-bucket-create.html#curl-syntax
+      curl -v -X POST http://couchbase:8091/pools/default/buckets \\
+      -u $${ADMIN_LOGIN}:$${ADMIN_PASS} \\
+      -d name=$${BUCKET} \\
+      -d bucketType=ephemeral \\
+      -d ramQuota=256 \\
+      -d evictionPolicy=nruEviction \\
+      -d flushEnabled=1
+
+      sleep 1
+
+      echo -e 'Create application user'
+      # https://docs.couchbase.com/server/current/manage/manage-security/manage-users-and-roles.html#create-a-local-user-with-the-rest-api
+      curl -v -X PUT http://couchbase:8091/settings/rbac/users/local/$${LOGIN} \\
+      -u $${ADMIN_LOGIN}:$${ADMIN_PASS} \\
+      -d password=$${PASS} \\
+      -d roles=bucket_full_access[$${BUCKET}],scope_admin[$${BUCKET}]
+      "
+
+volumes:
+  cb_data:
+    driver: local

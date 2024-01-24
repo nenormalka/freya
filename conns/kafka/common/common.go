@@ -6,7 +6,8 @@ import (
 )
 
 type (
-	MessageHandler func(msg json.RawMessage) error
+	MessageHandlerTyped[T any] func(msg T) error
+	MessageHandler             func(msg json.RawMessage) error
 
 	ErrFunc func(err error)
 
@@ -21,6 +22,10 @@ var (
 	ErrEmptyErrFunc       = errors.New("err empty err func")
 	ErrEmptyGroupName     = errors.New("err empty group name")
 	ErrGroupAlreadyClosed = errors.New("err group already closed")
+	ErrEmptyConsumerGroup = errors.New("err empty consumer group")
+	ErrEmptyTopics        = errors.New("err empty topics")
+	ErrEmptyHandlers      = errors.New("err empty handlers")
+	ErrSyncProducerClosed = errors.New("err sync producer closed")
 )
 
 func (t Topics) ToStrings() []string {

@@ -8,11 +8,13 @@ import (
 	"strings"
 
 	"github.com/nenormalka/freya/types"
+	"github.com/nenormalka/freya/types/errors"
 
 	grpczap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpcctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	sentry "github.com/johnbellone/grpc-middleware-sentry"
+	"github.com/yonesko/protoredact"
 	"go.elastic.co/apm/module/apmgrpc/v2"
 	"go.elastic.co/apm/v2"
 	"go.uber.org/zap"
@@ -23,18 +25,25 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
 	fieldName = "grpc.details"
 )
 
+var (
+	sensitiveFieldAnnotation *protoimpl.ExtensionInfo
+)
+
 func interceptors(
 	logger *zap.Logger,
 	tracer *apm.Tracer,
 	customInterceptors [][]grpc.UnaryServerInterceptor,
-	config Config,
+	config *Config,
 ) []grpc.UnaryServerInterceptor {
+	sensitiveFieldAnnotation = config.SensitiveData
+
 	ints := []grpc.UnaryServerInterceptor{
 		apmgrpc.NewUnaryServerInterceptor(apmgrpc.WithRecovery(), apmgrpc.WithTracer(tracer)),
 		grpcctxtags.UnaryServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
@@ -46,7 +55,8 @@ func interceptors(
 			codes.Internal,
 			codes.Unimplemented,
 		}),
-		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(panicInterceptor(logger))),
+		recovery.UnaryServerInterceptor(recovery.WithRecoveryHandlerContext(panicInterceptor(logger))),
+		checkErrorInterceptor(),
 	}
 
 	if config.WithServerMetrics {
@@ -60,21 +70,37 @@ func interceptors(
 	return ints
 }
 
-func panicInterceptor(logger *zap.Logger) func(p any) (err error) {
-	return func(p any) (err error) {
+func panicInterceptor(logger *zap.Logger) func(ctx context.Context, p any) (err error) {
+	return func(ctx context.Context, p any) (err error) {
 		types.GRPCPanicInc()
 
 		logger.Error(
 			"recovered panic",
 			zap.String("panic value", fmt.Sprintf("%v", p)),
 			zap.String("stacktrace", fmt.Sprintf("%+v", debug.Stack())),
+			fieldWithTraceID(ctx),
 		)
 
 		return status.Errorf(codes.Internal, "%s", p)
 	}
 }
 
-func logMetadataInterceptor(logger *zap.Logger, config Config) grpc.UnaryServerInterceptor {
+func checkErrorInterceptor() grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+	) (
+		resp any, err error,
+	) {
+		resp, err = handler(ctx, req)
+		if err != nil {
+			err = errors.ErrorToGRPCError(err)
+		}
+
+		return resp, err
+	}
+}
+
+func logMetadataInterceptor(logger *zap.Logger, config *Config) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
 	) (
@@ -104,7 +130,34 @@ func logMetadataInterceptor(logger *zap.Logger, config Config) grpc.UnaryServerI
 	}
 }
 
-func payloadLoggingInterceptor(logger *zap.Logger, config Config) grpc.UnaryServerInterceptor {
+func marshalPayload(msg any) (result string) {
+	defer func() {
+		if p := recover(); p != nil {
+			result = fmt.Sprint(p)
+		}
+	}()
+
+	p, ok := msg.(proto.Message)
+	if !ok {
+		return "msg is not proto.Message"
+	}
+
+	redactedMessage := proto.Clone(p)
+	if sensitiveFieldAnnotation != nil {
+		if err := protoredact.Redact(redactedMessage, sensitiveFieldAnnotation); err != nil {
+			return "redact: " + err.Error()
+		}
+	}
+
+	bytes, err := protojson.Marshal(redactedMessage)
+	if err != nil {
+		return "marshal: " + err.Error()
+	}
+
+	return string(bytes)
+}
+
+func payloadLoggingInterceptor(logger *zap.Logger, config *Config) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
 	) (
@@ -116,7 +169,7 @@ func payloadLoggingInterceptor(logger *zap.Logger, config Config) grpc.UnaryServ
 		apiLogger.Info(
 			fmt.Sprintf("unary call %s", info.FullMethod),
 			methodFld,
-			zap.ByteString("grpc.payload", marshalPayload(req)),
+			zap.String("grpc.payload", marshalPayload(req)),
 			fieldWithTraceID(ctx),
 		)
 
@@ -128,7 +181,7 @@ func payloadLoggingInterceptor(logger *zap.Logger, config Config) grpc.UnaryServ
 		responseField := zap.Skip()
 
 		if config.WithDebugLog || zap.WarnLevel.Enabled(level) {
-			responseField = zap.ByteString("grpc.payload", marshalPayload(resp))
+			responseField = zap.String("grpc.payload", marshalPayload(resp))
 		}
 
 		apiLogger.Log(
@@ -144,19 +197,6 @@ func payloadLoggingInterceptor(logger *zap.Logger, config Config) grpc.UnaryServ
 
 		return
 	}
-}
-
-func marshalPayload(msg any) []byte {
-	pm, ok := msg.(proto.Message)
-	if !ok {
-		return nil
-	}
-
-	pl, err := protojson.Marshal(pm)
-	if err != nil {
-		return []byte("*CANNOT MARSHAL*")
-	}
-	return pl
 }
 
 func initSentryInterceptor(codesToReport []codes.Code) grpc.UnaryServerInterceptor {

@@ -1,7 +1,6 @@
 package types
 
 import (
-	"context"
 	"go.uber.org/dig"
 )
 
@@ -12,10 +11,6 @@ type (
 	}
 
 	Module []Provider
-
-	App interface {
-		Run(context.Context) error
-	}
 )
 
 func (m Module) Append(o Module) Module {

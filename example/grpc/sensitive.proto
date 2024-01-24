@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package example_service;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "./example_service;";
+
+message Sensitive {
+  repeated string map_keys_to_redact = 1;
+}
+
+extend google.protobuf.FieldOptions {
+  Sensitive sensitive = 1234;
+}

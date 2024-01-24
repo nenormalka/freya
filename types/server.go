@@ -36,11 +36,23 @@ func (p *ServerPool) Stop(ctx context.Context) {
 	stop(ctx, p.p, p.logger, runnableServer)
 }
 
-func StartServerWithWaiting(ctx context.Context, f func(errCh chan error)) error {
+func StartServerWithWaiting(
+	ctx context.Context,
+	logger *zap.Logger,
+	f func(errCh chan error),
+) error {
 	errCh := make(chan error)
 	ctxT, cancel := context.WithTimeout(ctx, waitingTime)
 	defer cancel()
-	defer close(errCh)
+	defer func() {
+		go func() {
+			for err := range errCh {
+				if err != nil {
+					logger.Error("server err", zap.Error(err))
+				}
+			}
+		}()
+	}()
 
 	go f(errCh)
 

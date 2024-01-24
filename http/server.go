@@ -68,7 +68,7 @@ func NewHTTP(config Config, logger *zap.Logger, customServerList CustomServerLis
 func (s *Server) Start(ctx context.Context) error {
 	s.logger.Info("HTTP server started, listening on address: ", zap.String("http start", s.cfg.ListenAddr))
 
-	return types.StartServerWithWaiting(ctx, func(errCh chan error) {
+	return types.StartServerWithWaiting(ctx, s.logger, func(errCh chan error) {
 		if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			s.logger.Error("http server err", zap.Error(err))
 			if errCh != nil {

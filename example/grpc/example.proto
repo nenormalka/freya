@@ -4,8 +4,32 @@ package example_service;
 
 option go_package = "./example_service;example_service";
 
+import "sensitive.proto";
+
 message Empty {}
+
+message GetErrRequest {
+  TestEnum code = 1;
+}
+
+enum TestEnum {
+  TEST_ENUM_UNSPECIFIED = 0;
+  TEST_ENUM_UNKNOWN = 1;
+  TEST_ENUM_INVALID_ARGUMENT = 2;
+  TEST_ENUM_NOT_FOUND = 3;
+}
+
+message GetSensitiveRequest {
+  string password = 1 [(sensitive) = {}];
+  string login = 2;
+}
+
+message GetSensitiveResponse {
+  map<string, string> data = 1  [(sensitive) = {map_keys_to_redact:["password"]}];
+}
 
 service ExampleService {
   rpc GetTest(Empty) returns (Empty);
+  rpc GetErr(GetErrRequest) returns (Empty);
+  rpc GetSensitive(GetSensitiveRequest) returns (GetSensitiveResponse);
 }
