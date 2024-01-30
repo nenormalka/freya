@@ -23,6 +23,7 @@ var (
 	ErrEmptyGroupName     = errors.New("err empty group name")
 	ErrGroupAlreadyClosed = errors.New("err group already closed")
 	ErrEmptyConsumerGroup = errors.New("err empty consumer group")
+	ErrEmptySyncProducer  = errors.New("err empty sync producer")
 	ErrEmptyTopics        = errors.New("err empty topics")
 	ErrEmptyHandlers      = errors.New("err empty handlers")
 	ErrSyncProducerClosed = errors.New("err sync producer closed")

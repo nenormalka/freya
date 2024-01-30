@@ -88,3 +88,21 @@ func AddTypedHandler[T any](
 
 	return nil
 }
+
+func TypedSend[T any](
+	sp SyncProducer,
+	topic string,
+	message T,
+	opts ...syncproducer.SendOptions,
+) error {
+	if sp == nil {
+		return common.ErrEmptySyncProducer
+	}
+
+	msg, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("marshal message to topic %s err: %w", topic, err)
+	}
+
+	return sp.Send(topic, msg, opts...)
+}

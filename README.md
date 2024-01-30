@@ -17,7 +17,7 @@ freya - это ioc-контейнер, основанный на <a href="https:
 freya подтягивается в проект, как обычный го-модуль.
 
 ```shell
-go get -u github.com/nenormalka/freya
+go get -u gitlab.int.tsum.com/preowned/sofy/epsilon/freya.git
 ```
 
 В ***main.go*** создаётся переменная **Module** с типом *types.Module*, которая по сути является
@@ -28,8 +28,8 @@ go get -u github.com/nenormalka/freya
 package main
 
 import (
-	"github.com/nenormalka/freya"
-	"github.com/nenormalka/freya/types"
+	"gitlab.int.tsum.com/preowned/sofy/epsilon/freya.git"
+	"gitlab.int.tsum.com/preowned/sofy/epsilon/freya.git/types"
 
 	"freya/example"
 	exampleconfig "freya/example/config"
@@ -68,7 +68,7 @@ func main() {
 метрики прометеуса о приложении.
 
 Пример реализации простого сервиса можно найти в папке
-<a href="https://github.com/nenormalka/freya/-/blob/master/example/main.go"> example </a>.
+<a href="https://gitlab.int.tsum.com/preowned/sofy/epsilon/freya.git/-/blob/master/example/main.go"> example </a>.
 </p>
 
 <p>
@@ -242,7 +242,18 @@ f common.MessageHandlerTyped[T],
 2) [syncproducer](conns%2Fkafka%2Fsyncproducer) тут всё тоже соответствует названию. Предоставляется всего
    два метода Send и Close. Метод Send помимо основных параметров, принимает функциональные опции,
    с помощью которых можно указать партицию, заголовки и метаданные сообщения. При завершении работы
-   приложения желательно дёрнуть метод Close. Пример так же можно глянуть [тут](example%2Fservice%2Fservice.go).
+   приложения желательно дёрнуть метод Close. Если лень маршалить объекты, то можно дёргать функцию:
+
+```go
+func TypedSend[T any](
+	sp SyncProducer,
+	topic string,
+	message T,
+	opts ...syncproducer.SendOptions,
+) error 
+```
+
+Она будет превращать в набор байтиков за вас. Пример так же можно глянуть [тут](example%2Fservice%2Fservice.go).
 
 Чтобы получить обёртку, надо дёрнуть метод:
 
@@ -440,7 +451,6 @@ defer в mainFunc. В нём происходит закрытие всех со
 3) RunBenchmark - запускает бенчмарк функцию, которая принимает *testing.B, название и функцию для инвока
 
 Пример можно глянуть [тут](example%2Fservice%2Fservice_test.go)
-
 </p>
 
 <p>

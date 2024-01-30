@@ -29,17 +29,6 @@ services:
     env_file:
       - kafka.env
 
-  init-kafka:
-    image: confluentinc/cp-kafka:latest
-    depends_on:
-      - kafka
-    entrypoint: [ '/bin/sh', '-c' ]
-    command: |
-      "
-      echo -e 'Creating kafka topics'
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic utp.example.test
-      "
-
   kafka-ui:
     image: provectuslabs/kafka-ui
     container_name: kafka-ui

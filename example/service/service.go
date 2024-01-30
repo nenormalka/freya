@@ -249,13 +249,7 @@ func (s *Service) produce() {
 				Age:  i,
 			}
 
-			data, err := json.Marshal(msg)
-			if err != nil {
-				s.logger.Error("marshal message err", zap.Error(err))
-				continue
-			}
-
-			if err = s.sp.Send(topic, data); err != nil {
+			if err := kafka.TypedSend(s.sp, topic, msg); err != nil {
 				s.logger.Error("produce message err", zap.Error(err))
 			}
 
