@@ -1,6 +1,7 @@
 package conns
 
 import (
+	"github.com/nenormalka/freya/conns/consul"
 	"github.com/nenormalka/freya/conns/couchbase"
 	"github.com/nenormalka/freya/conns/elastic"
 	"github.com/nenormalka/freya/conns/kafka"
@@ -14,4 +15,5 @@ var Module = types.Module{
 	Append(postrgres.Module).
 	Append(elastic.Module).
 	Append(kafka.Module).
-	Append(couchbase.Module)
+	Append(couchbase.Module).
+	Append(consul.Module)

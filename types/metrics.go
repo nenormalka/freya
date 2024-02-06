@@ -63,6 +63,16 @@ var (
 		}, []string{"query", "error"},
 	)
 
+	ConsulKVMetrics = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "connections",
+			Subsystem: "consul_kv",
+			Name:      "call_duration_seconds",
+			Help:      "request duration seconds",
+			Buckets:   []float64{.005, .01, .025, .05, .075, .1, .15, .2, .25, .5, 1, 2.5},
+		}, []string{"query", "error"},
+	)
+
 	GRPCPanicMetrics = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: "grpc",
 		Name:      "panic_total",
@@ -142,6 +152,21 @@ func WithHTTPMetrics(
 	var err error
 	defer func(start time.Time) {
 		HTTPMetrics.
+			WithLabelValues(requestName, errToBoolString(err)).
+			Observe(time.Since(start).Seconds())
+	}(time.Now())
+
+	err = callFunc()
+	return err
+}
+
+func WithConsulKVMetrics(
+	requestName string,
+	callFunc customFunc,
+) error {
+	var err error
+	defer func(start time.Time) {
+		ConsulKVMetrics.
 			WithLabelValues(requestName, errToBoolString(err)).
 			Observe(time.Since(start).Seconds())
 	}(time.Now())

@@ -60,8 +60,6 @@ func WithZapLoggerOption(l *zap.Logger) CouchLockOption {
 	}
 }
 
-// Чтобы лок работал правильно, в конфиге должен быть указан ТОЛЬКО ОДИН кластер
-// https://docs.couchbase.com/go-sdk/current/howtos/kv-operations.html#atomicity-across-data-centers
 func NewCouchLock(
 	c *conns.Conns,
 	bucketName, collectionName string,

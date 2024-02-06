@@ -28,6 +28,7 @@ type (
 		ElasticSearch   ElasticSearch    `yaml:"elastic_search"`
 		Sentry          Sentry           `yaml:"sentry"`
 		CouchbaseConfig CouchbaseConfig  `yaml:"couchbase"`
+		ConsulConfig    ConsulConfig     `yaml:"consul"`
 
 		ReleaseID string
 		Env       string `envconfig:"ENV" default:"development" required:"true" yaml:"env"`
@@ -87,11 +88,20 @@ type (
 	}
 
 	CouchbaseConfig struct {
-		DSN         string `envconfig:"COUCHBASE_DSN" yaml:"dsn""`
+		DSN         string `envconfig:"COUCHBASE_DSN" yaml:"dsn"`
 		User        string `envconfig:"COUCHBASE_USER" yaml:"user"`
 		Password    string `envconfig:"COUCHBASE_PWD" yaml:"password"`
 		Buckets     string `envconfig:"COUCHBASE_BUCKET" yaml:"bucket"`
 		EnableDebug bool   `envconfig:"COUCHBASE_ENABLE_DEBUG" default:"false" yaml:"enable_debug"`
+	}
+
+	ConsulConfig struct {
+		Address            string        `envconfig:"CONSUL_ADDRESS" yaml:"address"`
+		Scheme             string        `envconfig:"CONSUL_SCHEME" default:"http" yaml:"scheme"`
+		Token              string        `envconfig:"CONSUL_TOKEN" yaml:"token"`
+		InsecureSkipVerify bool          `envconfig:"CONSUL_INSECURE_SKIP_VERIFY" default:"true" yaml:"insecure_skip_verify"`
+		SessionTTL         string        `envconfig:"CONSUL_SESSION_TTL" default:"30s" yaml:"session_ttl"`
+		LeaderTTL          time.Duration `envconfig:"CONSUL_LEADER_TTL" default:"20s" yaml:"leader_ttl"`
 	}
 )
 

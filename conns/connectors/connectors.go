@@ -9,16 +9,17 @@ import (
 
 	"github.com/couchbase/gocb/v2"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/hashicorp/consul/api"
 	"github.com/jmoiron/sqlx"
 )
 
 type (
 	ConnectDB interface {
-		*sqlx.DB | *goqu.Database | types.PgxConn | *gocb.Collection | *elasticsearch.Client
+		*sqlx.DB | *goqu.Database | types.PgxConn | *gocb.Collection | *elasticsearch.Client | *api.KV
 	}
 
 	ConnectTx interface {
-		*sqlx.Tx | *goqu.TxDatabase | types.PgxTx | *txtype.CollectionTx
+		*sqlx.Tx | *goqu.TxDatabase | types.PgxTx | *txtype.CollectionTx | *api.Txn
 	}
 
 	CallContextConnector[T ConnectDB] interface {

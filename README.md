@@ -17,7 +17,7 @@ freya - это ioc-контейнер, основанный на <a href="https:
 freya подтягивается в проект, как обычный го-модуль.
 
 ```shell
-go get -u gitlab.int.tsum.com/preowned/sofy/epsilon/freya.git
+go get -u github.com/nenormalka/freya
 ```
 
 В ***main.go*** создаётся переменная **Module** с типом *types.Module*, которая по сути является
@@ -28,8 +28,8 @@ go get -u gitlab.int.tsum.com/preowned/sofy/epsilon/freya.git
 package main
 
 import (
-	"gitlab.int.tsum.com/preowned/sofy/epsilon/freya.git"
-	"gitlab.int.tsum.com/preowned/sofy/epsilon/freya.git/types"
+	"github.com/nenormalka/freya"
+	"github.com/nenormalka/freya/types"
 
 	"freya/example"
 	exampleconfig "freya/example/config"
@@ -68,7 +68,7 @@ func main() {
 метрики прометеуса о приложении.
 
 Пример реализации простого сервиса можно найти в папке
-<a href="https://gitlab.int.tsum.com/preowned/sofy/epsilon/freya.git/-/blob/master/example/main.go"> example </a>.
+<a href="https://github.com/nenormalka/freya/-/blob/master/example/main.go"> example </a>.
 </p>
 
 <p>
@@ -118,10 +118,11 @@ func GetKafka() (*kafka.Kafka, error) возвращает экземпляр д
 func GetElasticConn() (*elastic.ElasticConn, error) возращает коннект к эластику
 
 func GetCouchbase() (*couchbase.Couchbase, error) возращает коннект к коучбейзу
+
+func (c *Conns) GetConsul() (*consul.Consul, error) возращает коннект к консулу
 ```
 
-Остальные методы депрекейтнуты, и категорически не советую ими пользоваться. При завершении
-работы приложения, все коннекты будут закрыты автоматически.
+Остальные методы депрекейтнуты, и категорически не советую ими пользоваться.
 
 Далее идёт описания коннектов:
 
@@ -131,28 +132,116 @@ func GetCouchbase() (*couchbase.Couchbase, error) возращает конне�
 
 ```go
 CallContextConnector[T ConnectDB] interface {
-CallContext(
-ctx context.Context,
-queryName string,
-callFunc func (ctx context.Context, db T) error,
+   CallContext(
+   ctx context.Context,
+   queryName string,
+   callFunc func (ctx context.Context, db T) error,
 ) error
 }
 
 CallTransactionConnector[M ConnectTx] interface {
-CallTransaction(
-ctx context.Context,
-txName string,
-callFunc func (ctx context.Context, tx M) error,
+   CallTransaction(
+   ctx context.Context,
+   txName string,
+   callFunc func (ctx context.Context, tx M) error,
 ) error
 }
 
 DBConnector[T ConnectDB, M ConnectTx] interface {
-CallContextConnector[T]
-CallTransactionConnector[M]
+   CallContextConnector[T]
+   CallTransactionConnector[M]
 }
 ```
 
 Тут же есть папочка [mocks](conns%2Fconnectors%2Fmocks) в которой есть мок для sqlx соединения.
+
+### [consul](conns%2Fconsul)
+
+Соединение с консулом. Требуемые переменные конфига:
+
+**CONSUL_ADDRESS** - адрес консула <br>
+**CONSUL_SCHEME** - схема. По дефолту http <br>
+**CONSUL_TOKEN** - токен, может быть пустым <br>
+**CONSUL_INSECURE_SKIP_VERIFY** -скип верификации, по дефолту true <br>
+**CONSUL_SESSION_TTL** -время сессии, по дефолту 30 секунд <br>
+**CONSUL_LEADER_TTL** -время, через которое проверяется лидерство, по дефолту 20 секунд <br>
+
+Абстракция над консулом предоставляет несколько интерфейсов:
+
+1) KV - работа с ключами-значениями. Реализует интерфейс DBConnector. Нужен для работы с ключами. Методы:
+
+```go
+
+func (kv *KV) CallContext(
+	ctx context.Context,
+	queryName string,
+	callFunc func(ctx context.Context, db *api.KV) error,
+) error
+
+func (kv *KV) CallTransaction(
+   ctx context.Context,
+   txName string,
+   callFunc func(ctx context.Context, tx *api.Txn) error,
+) error
+```
+
+2) Session - нужен для работы с сессиями. Методы:
+
+```go
+
+Session interface {
+   Create(ctx context.Context) (string, error)
+   Destroy(ctx context.Context) error
+   Renew(ctx context.Context) <-chan error
+   SessionID() string
+   SessionKey() string
+}
+```
+
+3) Locker - нужен для работы с локами. Методы:
+
+```go
+
+Locker interface {
+   Acquire(ctx context.Context, key, sessionID string) (bool, error)
+   Release(ctx context.Context, key, sessionID string) (bool, error)
+   KeyOwner(ctx context.Context, key string) (string, error)
+}
+```
+
+4) Watcher - позволяет отслеживать изменения ключей. Методы:
+
+```go
+
+Watcher interface {
+   Start(ctx context.Context) error
+   Stop(ctx context.Context) error
+   WatchKeys(keys watcher.WatchKeys) error
+   WatchPrefixKeys(keys watcher.WatchPrefixKey) error
+}
+```
+
+5) Leader - позволяет выбирать лидера. При старте создаёт сессию и с её помощью вещает лок. Методы:
+
+```go
+
+Leader interface {
+   Start(ctx context.Context) error
+   Stop(ctx context.Context) error
+   IsLeader() bool
+}
+```
+6) ServiceDiscovery - позволяет получать информацию о сервисах, регистрировать и разрегистрировать сервис. Методы:
+
+```go
+
+ServiceDiscovery interface {
+   ServiceInfo(ctx context.Context, serviceName string, tags []string) ([]*api.ServiceEntry, error)
+   ServiceList(ctx context.Context) (map[string][]string, error)
+   ServiceRegister(ctx context.Context, reg *api.AgentServiceRegistration) error
+   ServiceDeregister(ctx context.Context, serviceID string) error
+}
+```
 
 ### [couchbase](conns%2Fcouchbase)
 
@@ -210,15 +299,15 @@ func GetElasticConn() (*elastic.ElasticConn, error)
 ```go
 ConsumerGroup interface {
 AddHandler(topic common.Topic, hm common.MessageHandler)
-Consume() error
-Close() error
-PauseAll()
-ResumeAll()
+   Consume() error
+   Close() error
+   PauseAll()
+   ResumeAll()
 }
 
 SyncProducer interface {
-Send(topic string, message []byte, opts ...syncproducer.SendOptions) error
-Close() error
+   Send(topic string, message []byte, opts ...syncproducer.SendOptions) error
+   Close() error
 }
 ```
 
@@ -230,9 +319,9 @@ Close() error
 
 ```go
 func AddTypedHandler[T any](
-cg ConsumerGroup,
-topic common.Topic,
-f common.MessageHandlerTyped[T],
+   cg ConsumerGroup,
+   topic common.Topic,
+   f common.MessageHandlerTyped[T],
 ) error
 ```
 

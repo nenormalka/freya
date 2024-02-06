@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/nenormalka/freya/conns/connectors"
+	"github.com/nenormalka/freya/conns/consul"
 	"github.com/nenormalka/freya/conns/couchbase"
 	"github.com/nenormalka/freya/conns/elastic"
 	"github.com/nenormalka/freya/conns/kafka"
@@ -40,6 +41,8 @@ type (
 		kafka *kafka.Kafka
 		// couchbase абстракция над коучбейсом
 		couchbase *couchbase.Couchbase
+		// consul абстракция над консулом
+		consul *consul.Consul
 	}
 )
 
@@ -48,6 +51,7 @@ var (
 	errEmptyPool        = errors.New("empty pool")
 	errEmptyConn        = errors.New("empty connection")
 	errEmptyKafka       = errors.New("empty kafka")
+	errEmptyConsul      = errors.New("empty consul")
 	errEmptyCouchbase   = errors.New("empty couchbase")
 )
 
@@ -62,6 +66,7 @@ func NewConns(
 	pgxConns map[string]connectors.DBConnector[dbtypes.PgxConn, dbtypes.PgxTx],
 	kafka *kafka.Kafka,
 	couchbase *couchbase.Couchbase,
+	consul *consul.Consul,
 ) *Conns {
 	return &Conns{
 		logger:      logger,
@@ -74,6 +79,7 @@ func NewConns(
 		pgxPoolDB:   pgxPoolDB,
 		kafka:       kafka,
 		couchbase:   couchbase,
+		consul:      consul,
 	}
 }
 
@@ -109,6 +115,15 @@ func (c *Conns) GetKafka() (*kafka.Kafka, error) {
 	}
 
 	return c.kafka, nil
+}
+
+// GetConsul возвращает абстракцию над консулом
+func (c *Conns) GetConsul() (*consul.Consul, error) {
+	if c.consul == nil {
+		return nil, errEmptyConsul
+	}
+
+	return c.consul, nil
 }
 
 // GetElastic возвращает клиент для работы с эластиком

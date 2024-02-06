@@ -16,7 +16,7 @@ import (
 
 type (
 	ConsumerGroup interface {
-		AddHandler(topic common.Topic, hm common.MessageHandler)
+		AddHandler(topic common.Topic, hm common.MessageHandler) error
 		Consume() error
 		Close() error
 		PauseAll()
@@ -76,7 +76,7 @@ func AddTypedHandler[T any](
 		return common.ErrEmptyConsumerGroup
 	}
 
-	cg.AddHandler(topic, func(msg json.RawMessage) error {
+	if err := cg.AddHandler(topic, func(msg json.RawMessage) error {
 		var t T
 
 		if err := json.Unmarshal(msg, &t); err != nil {
@@ -84,7 +84,9 @@ func AddTypedHandler[T any](
 		}
 
 		return f(t)
-	})
+	}); err != nil {
+		return fmt.Errorf("add handler to topic %s err: %w", topic, err)
+	}
 
 	return nil
 }

@@ -49,6 +49,12 @@ services:
     volumes:
       - cb_data:/opt/couchbase/var
 
+  consul:
+    image: hashicorp/consul:1.11.2
+    ports:
+      - 8500:8500
+    command: agent -server -bind 0.0.0.0 -client 0.0.0.0 -bootstrap-expect 1 -dev -ui
+
   couchbase-init:
     image: curlimages/curl
     depends_on:

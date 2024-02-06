@@ -2,6 +2,7 @@ package consumergroup
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -15,12 +16,16 @@ import (
 	"github.com/nenormalka/freya/types"
 )
 
+var (
+	ErrTopicExists = errors.New("topic already exists")
+)
+
 type (
 	ConsumerGroup struct {
 		name       string
 		skipErrors map[common.Topic]struct{}
 		topics     common.Topics
-		handlers   map[common.Topic][]common.MessageHandler
+		handlers   map[common.Topic]common.MessageHandler
 		closed     chan struct{}
 
 		logger  *zap.Logger
@@ -68,7 +73,7 @@ func NewConsumerGroup(
 		config:     sarama.NewConfig(),
 		skipErrors: cfg.SkipErrors,
 		logger:     logger,
-		handlers:   make(map[common.Topic][]common.MessageHandler),
+		handlers:   make(map[common.Topic]common.MessageHandler),
 		closed:     make(chan struct{}),
 		wg:         &wait.Group{},
 		mu:         &sync.RWMutex{},
@@ -102,13 +107,15 @@ func NewConsumerGroup(
 	return cg, nil
 }
 
-func (cg *ConsumerGroup) AddHandler(topic common.Topic, hm common.MessageHandler) {
-	if _, ok := cg.handlers[topic]; !ok {
-		cg.handlers[topic] = make([]common.MessageHandler, 0)
+func (cg *ConsumerGroup) AddHandler(topic common.Topic, hm common.MessageHandler) error {
+	if _, ok := cg.handlers[topic]; ok {
+		return ErrTopicExists
 	}
 
-	cg.handlers[topic] = append(cg.handlers[topic], hm)
+	cg.handlers[topic] = hm
 	cg.topics = append(cg.topics, topic)
+
+	return nil
 }
 
 func (cg *ConsumerGroup) Consume() error {
@@ -140,26 +147,23 @@ func (cg *ConsumerGroup) Consume() error {
 func (cg *ConsumerGroup) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	cg.logger.Info(fmt.Sprintf("Kafka: start consume topic: %s partition: %d", claim.Topic(), claim.Partition()))
 
-	handlers, ok := cg.handlers[common.Topic(claim.Topic())]
+	handler, ok := cg.handlers[common.Topic(claim.Topic())]
 	if !ok {
-		return fmt.Errorf("missing handlers for topic: %s", claim.Topic())
+		return fmt.Errorf("missing handler for topic: %s", claim.Topic())
 	}
 
 	for msg := range claim.Messages() {
 		start := time.Now()
+		if err := handler(msg.Value); err != nil {
+			cg.errFunc(fmt.Errorf("handle %s topic: err %w", msg.Topic, err))
 
-		for _, h := range handlers {
-			if err := h(msg.Value); err != nil {
-				cg.errFunc(fmt.Errorf("handle %s topic: err %w", msg.Topic, err))
+			types.KafkaConsumerGroupMetricsF(cg.name, msg.Topic, err, time.Since(start).Seconds())
 
-				types.KafkaConsumerGroupMetricsF(cg.name, msg.Topic, err, time.Since(start).Seconds())
-
-				if _, ok = cg.skipErrors[common.Topic(claim.Topic())]; ok {
-					continue
-				}
-
-				return fmt.Errorf("ConsumeClaim topic %s, err %w", msg.Topic, err)
+			if _, ok = cg.skipErrors[common.Topic(claim.Topic())]; ok {
+				continue
 			}
+
+			return fmt.Errorf("ConsumeClaim topic %s, err %w", msg.Topic, err)
 		}
 
 		sess.MarkMessage(msg, "ok")
