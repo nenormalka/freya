@@ -1,6 +1,7 @@
 package example_service
 
 import (
+	"fmt"
 	"github.com/nenormalka/freya/grpc"
 	"github.com/nenormalka/freya/types"
 
@@ -24,13 +25,18 @@ type (
 )
 
 // adapter ...
-func adapter(serv *Server) AdapterOut {
+func adapter(serv *Server) (AdapterOut, error) {
+	opt, err := grpc.WithSensitiveData(E_Sensitive)
+	if err != nil {
+		return AdapterOut{}, fmt.Errorf("failed to create grpc server option: %w", err)
+	}
+
 	return AdapterOut{
 		Server: grpc.Definition{
 			Description:    &ExampleService_ServiceDesc,
 			Implementation: serv,
 		},
 		Interceptors: getInterceptors(),
-		ServerOpt:    grpc.WithSensitiveData(E_Sensitive),
-	}
+		ServerOpt:    opt,
+	}, nil
 }

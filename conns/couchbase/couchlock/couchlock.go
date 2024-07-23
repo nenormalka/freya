@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	errWrongCount = errors.New("wrong count")
+	ErrWrongCount = errors.New("wrong count")
 	errDontDo     = errors.New("don't do")
 )
 
@@ -122,7 +122,7 @@ func (c *CouchLock) DoUnderLock(
 			if count.Content() > 1 {
 				c.logger.Info("count.Content() > 1", "count", int64(count.Content()))
 
-				return errWrongCount
+				return ErrWrongCount
 			}
 
 			if err = f(ctx); err != nil {

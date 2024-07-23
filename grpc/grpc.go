@@ -7,6 +7,7 @@ import (
 
 	"github.com/nenormalka/freya/types"
 
+	"github.com/nenormalka/bishamon"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.elastic.co/apm/v2"
 	"go.uber.org/dig"
@@ -117,8 +118,16 @@ func (s *Server) Stop(_ context.Context) error {
 	return nil
 }
 
-func WithSensitiveData(sensitiveData *protoimpl.ExtensionInfo) ServerOpt {
-	return func(cfg *Config) {
-		cfg.SensitiveData = sensitiveData
+func WithSensitiveData(sensitiveData *protoimpl.ExtensionInfo) (ServerOpt, error) {
+	redactor, err := bishamon.NewClearRedactor(
+		sensitiveData,
+		bishamon.WithFieldsFromMapFunc(bishamon.CommonFieldsFromMapFunc),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create redactor err: %w", err)
 	}
+
+	return func(cfg *Config) {
+		cfg.LogRedactor = redactor
+	}, nil
 }

@@ -46,6 +46,7 @@ type (
 
 const (
 	DefaultDBConn = "master"
+	SlaveDBConn   = "slave"
 )
 
 const (

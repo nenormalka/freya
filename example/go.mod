@@ -1,8 +1,8 @@
 module freya/example
 
-go 1.21
+go 1.21.5
 
-toolchain go1.21.0
+toolchain go1.21.12
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
@@ -10,12 +10,12 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/consul/api v1.27.0
 	github.com/jmoiron/sqlx v1.3.5
-	github.com/nenormalka/freya v1.2.11
+	github.com/nenormalka/freya v1.1.11
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/dig v1.17.0
 	go.uber.org/zap v1.26.0
 	google.golang.org/grpc v1.59.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.32.0
 )
 
 replace github.com/nenormalka/freya => ../
@@ -85,7 +85,8 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/nenormalka/lilith v1.0.12 // indirect
+	github.com/nenormalka/bishamon v1.0.1 // indirect
+	github.com/nenormalka/lilith v1.0.14 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
@@ -94,8 +95,6 @@ require (
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
-	github.com/samber/lo v1.38.1 // indirect
-	github.com/yonesko/protoredact v0.0.0-20231122132859-decb1c1c743a // indirect
 	go.elastic.co/apm/module/apmelasticsearch/v2 v2.4.3 // indirect
 	go.elastic.co/apm/module/apmgrpc/v2 v2.4.3 // indirect
 	go.elastic.co/apm/module/apmhttp/v2 v2.4.3 // indirect
@@ -108,6 +107,7 @@ require (
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect

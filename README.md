@@ -286,6 +286,25 @@ func GetCollection(bucketName, collectionName string) (connectors.DBConnector[*g
 func GetElasticConn() (*elastic.ElasticConn, error)
 ```
 
+У коннекта есть два метода для работы с индексами:
+
+```go
+    CallContext(
+      ctx context.Context,
+      queryName string,
+      callFunc func(ctx context.Context, client *elasticsearch.Client) error,
+   ) error
+
+   CallContextBulkIndexer(
+      ctx context.Context,
+      queryName string,
+      callFunc func(ctx context.Context, bi esutil.BulkIndexer) error,
+      opts ...BulkIndexerOpts,
+   ) error
+```
+
+Первый служит для работы через обычный клиент эластика, второй предоставляет *BulkIndexer*.
+
 ### [kafka](conns%2Fkafka)
 
 Абстракция над кафкой. Требуемые переменные окружения

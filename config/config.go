@@ -102,6 +102,7 @@ type (
 		InsecureSkipVerify bool          `envconfig:"CONSUL_INSECURE_SKIP_VERIFY" default:"true" yaml:"insecure_skip_verify"`
 		SessionTTL         string        `envconfig:"CONSUL_SESSION_TTL" default:"30s" yaml:"session_ttl"`
 		LeaderTTL          time.Duration `envconfig:"CONSUL_LEADER_TTL" default:"20s" yaml:"leader_ttl"`
+		ConsulServiceName  string        `envconfig:"CONSUL_SERVICE_NAME" yaml:"service_name"`
 	}
 )
 

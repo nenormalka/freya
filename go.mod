@@ -1,6 +1,8 @@
 module github.com/nenormalka/freya
 
-go 1.21
+go 1.21.5
+
+toolchain go1.21.12
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
@@ -28,11 +30,11 @@ require (
 	github.com/johnbellone/grpc-middleware-sentry v0.3.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/nenormalka/lilith v1.0.12
+	github.com/nenormalka/bishamon v1.0.1
+	github.com/nenormalka/lilith v1.0.14
 	github.com/prometheus/client_golang v1.16.0
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
 	github.com/stretchr/testify v1.8.4
-	github.com/yonesko/protoredact v0.0.0-20231122132859-decb1c1c743a
 	go.elastic.co/apm/module/apmelasticsearch/v2 v2.4.3
 	go.elastic.co/apm/module/apmgrpc/v2 v2.4.3
 	go.elastic.co/apm/module/apmpgx/v2 v2.4.3
@@ -42,7 +44,7 @@ require (
 	go.uber.org/zap v1.26.0
 	golang.org/x/mod v0.14.0
 	google.golang.org/grpc v1.59.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.32.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -98,13 +100,13 @@ require (
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
-	github.com/samber/lo v1.38.1 // indirect
 	go.elastic.co/apm/module/apmhttp/v2 v2.4.3 // indirect
 	go.elastic.co/fastjson v1.1.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
 	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect

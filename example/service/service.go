@@ -221,7 +221,7 @@ func (s *Service) Now(ctx context.Context) (string, error) {
 func (s *Service) GetErr(code ferrors.Code) error {
 	switch code {
 	case ferrors.InvalidArgument:
-		return ferrors.NewInvalidError(errors.New("invalid argument")).AddDetail("id", "1")
+		return fmt.Errorf("err %w", ferrors.NewInvalidError(errors.New("invalid argument")))
 	case ferrors.NotFound:
 		return ferrors.NewNotFoundError(errors.New("not found")).AddDetail("id", "2")
 	default:

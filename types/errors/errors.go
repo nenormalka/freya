@@ -171,9 +171,15 @@ func ErrorToGRPCError(err error) error {
 		return err
 	}
 
-	st, errS := status.New(e.CodeToGRPCCode(), err.Error()).WithDetails(e.DetailsToGRPCDetails())
-	if errS != nil {
-		return err
+	st := status.New(e.CodeToGRPCCode(), err.Error())
+
+	details := e.DetailsToGRPCDetails()
+	if details != nil {
+		var errS error
+		st, errS = st.WithDetails(details)
+		if errS != nil {
+			return err
+		}
 	}
 
 	return st.Err()

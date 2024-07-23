@@ -1,7 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"time"
+
+	lilith "github.com/nenormalka/lilith/methods"
 
 	"github.com/nenormalka/freya/config"
 )
@@ -26,6 +29,10 @@ func CreateConfig(cfg *config.Config) Config {
 		SessionTTL:         cfg.ConsulConfig.SessionTTL,
 		InsecureSkipVerify: cfg.ConsulConfig.InsecureSkipVerify,
 		LeaderTTL:          cfg.ConsulConfig.LeaderTTL,
-		ServiceName:        cfg.AppName,
+		ServiceName: lilith.Ternary(
+			cfg.ConsulConfig.ConsulServiceName == "",
+			fmt.Sprintf("service/%s/leader", cfg.AppName),
+			cfg.ConsulConfig.ConsulServiceName,
+		),
 	}
 }

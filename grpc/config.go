@@ -3,7 +3,7 @@ package grpc
 import (
 	"time"
 
-	"google.golang.org/protobuf/runtime/protoimpl"
+	"github.com/nenormalka/bishamon"
 
 	"github.com/nenormalka/freya/config"
 	"github.com/nenormalka/freya/types"
@@ -17,7 +17,7 @@ type (
 		KeepaliveTimeout  time.Duration
 		WithDebugLog      bool
 		WithServerMetrics bool
-		SensitiveData     *protoimpl.ExtensionInfo
+		LogRedactor       *bishamon.Redactor
 	}
 )
 

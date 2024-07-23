@@ -28,7 +28,7 @@ type (
 func NewSession(cli *api.Client, cfg config.Config) *Session {
 	return &Session{
 		cli:        cli,
-		sessionKey: fmt.Sprintf("service/%s/leader", cfg.ServiceName),
+		sessionKey: cfg.ServiceName,
 		ttl:        cfg.SessionTTL,
 		stopCh:     make(chan struct{}),
 	}
