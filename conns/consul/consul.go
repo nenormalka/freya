@@ -3,7 +3,6 @@ package consul
 import (
 	"context"
 	"fmt"
-	"github.com/nenormalka/freya/conns/consul/sd"
 
 	"github.com/hashicorp/consul/api"
 	"go.uber.org/zap"
@@ -14,6 +13,7 @@ import (
 	"github.com/nenormalka/freya/conns/consul/kv"
 	"github.com/nenormalka/freya/conns/consul/leader"
 	"github.com/nenormalka/freya/conns/consul/lock"
+	"github.com/nenormalka/freya/conns/consul/sd"
 	"github.com/nenormalka/freya/conns/consul/session"
 	"github.com/nenormalka/freya/conns/consul/watcher"
 )
@@ -58,6 +58,7 @@ type (
 		ServiceList(ctx context.Context) (map[string][]string, error)
 		ServiceRegister(ctx context.Context, reg *api.AgentServiceRegistration) error
 		ServiceDeregister(ctx context.Context, serviceID string) error
+		GetServicesByServiceName(serviceName string) ([]string, error)
 	}
 )
 

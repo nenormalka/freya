@@ -3,7 +3,7 @@ package service
 import (
 	"freya/example/repo"
 
-	"github.com/nenormalka/freya/types"
+	"github.com/nenormalka/melissa/types"
 
 	"go.uber.org/dig"
 	"go.uber.org/zap"

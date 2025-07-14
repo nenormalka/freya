@@ -11,10 +11,30 @@ type (
 	ServiceDiscovery struct {
 		cli *api.Client
 	}
+
+	ServiceInfo struct {
+		Address string
+		ID      string
+	}
 )
 
 func NewServiceDiscovery(cli *api.Client) *ServiceDiscovery {
 	return &ServiceDiscovery{cli: cli}
+}
+
+func (s *ServiceDiscovery) GetServicesByServiceName(serviceName string) ([]string, error) {
+	instances, _, err := s.cli.Health().Service(serviceName, "", true, nil)
+	if err != nil {
+		return nil, fmt.Errorf("get service err: %w", err)
+	}
+
+	services := make([]string, 0, len(instances))
+
+	for _, in := range instances {
+		services = append(services, fmt.Sprintf("%s:%d", in.Service.Address, in.Service.Port))
+	}
+
+	return services, nil
 }
 
 func (s *ServiceDiscovery) ServiceRegister(ctx context.Context, reg *api.AgentServiceRegistration) error {

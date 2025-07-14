@@ -89,13 +89,13 @@ func NewSyncProducer(
 	return sp, nil
 }
 
-func (sp *SyncProducer) Send(topic string, message []byte, opts ...SendOptions) error {
+func (sp *SyncProducer) Send(topic common.Topic, message []byte, opts ...SendOptions) error {
 	if sp.isClosed() {
 		return common.ErrSyncProducerClosed
 	}
 
 	msg := &sarama.ProducerMessage{
-		Topic: topic,
+		Topic: topic.String(),
 		Value: sarama.StringEncoder(message),
 	}
 
@@ -105,7 +105,7 @@ func (sp *SyncProducer) Send(topic string, message []byte, opts ...SendOptions) 
 
 	_, _, err := sp.pr.SendMessage(msg)
 
-	types.KafkaSyncProducerMetricsF(topic, err)
+	types.KafkaSyncProducerMetricsF(topic.String(), err)
 
 	if err != nil {
 		return fmt.Errorf("send message err: %w", err)

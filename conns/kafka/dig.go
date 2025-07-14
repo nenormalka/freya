@@ -1,10 +1,11 @@
 package kafka
 
 import (
+	"strings"
+
 	"github.com/nenormalka/freya/config"
 	"github.com/nenormalka/freya/conns/kafka/common"
-	"github.com/nenormalka/freya/types"
-	"strings"
+	"github.com/nenormalka/melissa/types"
 )
 
 var Module = types.Module{

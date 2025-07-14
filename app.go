@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nenormalka/freya/types"
+	"github.com/nenormalka/melissa/types"
 
 	"go.uber.org/zap"
 )

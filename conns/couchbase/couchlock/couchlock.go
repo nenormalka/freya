@@ -24,7 +24,8 @@ const (
 
 var (
 	ErrWrongCount = errors.New("wrong count")
-	errDontDo     = errors.New("don't do")
+
+	errDontDo = errors.New("don't do")
 )
 
 type (

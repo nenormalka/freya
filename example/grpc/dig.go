@@ -2,8 +2,9 @@ package example_service
 
 import (
 	"fmt"
+
 	"github.com/nenormalka/freya/grpc"
-	"github.com/nenormalka/freya/types"
+	"github.com/nenormalka/melissa/types"
 
 	"go.uber.org/dig"
 	grpc2 "google.golang.org/grpc"

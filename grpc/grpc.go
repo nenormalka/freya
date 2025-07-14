@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/nenormalka/freya/types"
 
@@ -18,6 +19,10 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/runtime/protoimpl"
+)
+
+const (
+	shutdownTimeout = 5 * time.Second
 )
 
 type (
@@ -48,6 +53,7 @@ func NewGRPC(
 	cfg *Config,
 	logger *zap.Logger,
 	tracer *apm.Tracer,
+	helper *ServersHelper,
 ) *Server {
 	for _, opt := range p.ServerOpt {
 		opt(cfg)
@@ -65,7 +71,12 @@ func NewGRPC(
 			},
 		),
 		grpc.ChainUnaryInterceptor(interceptors(logger, tracer, p.GRPCUnaryCustomInterceptors, cfg)...),
+		grpc.ChainStreamInterceptor(streamInterceptors(logger, tracer, cfg)...),
+		grpc.MaxRecvMsgSize(cfg.MaxReceiveMessageSize),
+		grpc.MaxSendMsgSize(cfg.MaxSendMessageSize),
 	)
+
+	p.GRPCDefinitions = append(p.GRPCDefinitions, helper.GRPCDefinitions...)
 
 	p.GRPCDefinitions = append(p.GRPCDefinitions, Definition{
 		Description:    &grpc_health_v1.Health_ServiceDesc,
@@ -114,7 +125,23 @@ func (s *Server) Start(ctx context.Context) error {
 }
 
 func (s *Server) Stop(_ context.Context) error {
-	s.server.GracefulStop()
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	chStop := make(chan struct{})
+
+	defer cancel()
+
+	go func() {
+		defer close(chStop)
+		s.server.GracefulStop()
+		chStop <- struct{}{}
+	}()
+
+	select {
+	case <-ctx.Done():
+		s.server.Stop()
+	case <-chStop:
+	}
+
 	return nil
 }
 

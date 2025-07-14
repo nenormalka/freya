@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	"github.com/nenormalka/freya/types"
+	"github.com/nenormalka/melissa/types"
 
 	"go.uber.org/dig"
 )
@@ -10,6 +10,7 @@ var Module = types.Module{
 	{CreateFunc: NewGRPCConfig},
 	{CreateFunc: NewGRPC},
 	{CreateFunc: Adapter},
+	{CreateFunc: newServersHelper},
 }
 
 type (

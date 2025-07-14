@@ -63,6 +63,16 @@ var (
 		}, []string{"query", "error"},
 	)
 
+	RedisMetrics = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "connections",
+			Subsystem: "redis",
+			Name:      "call_duration_seconds",
+			Help:      "request duration seconds",
+			Buckets:   []float64{.005, .01, .025, .05, .075, .1, .15, .2, .25, .5, 1, 2.5},
+		}, []string{"query", "error"},
+	)
+
 	ConsulKVMetrics = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "connections",
@@ -71,6 +81,15 @@ var (
 			Help:      "request duration seconds",
 			Buckets:   []float64{.005, .01, .025, .05, .075, .1, .15, .2, .25, .5, 1, 2.5},
 		}, []string{"query", "error"},
+	)
+
+	OutboxMetrics = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "outbox",
+			Subsystem: "messages",
+			Name:      "outbox_statistic",
+			Help:      "messages and statuses",
+		}, []string{"source", "status"},
 	)
 
 	GRPCPanicMetrics = promauto.NewCounter(prometheus.CounterOpts{
@@ -87,6 +106,16 @@ var (
 			Help:      "Consumer group consume duration",
 		},
 		[]string{"consumer_group", "topic", "error"},
+	)
+
+	KafkaConsumerMetrics = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "kafka",
+			Subsystem: "consumer",
+			Name:      "duration_consume",
+			Help:      "Consumer consume duration",
+		},
+		[]string{"topic", "error"},
 	)
 
 	KafkaSyncProducerMetrics = promauto.NewCounterVec(
@@ -133,10 +162,22 @@ func GRPCPanicInc() {
 	GRPCPanicMetrics.Inc()
 }
 
+func OutboxMetricsF(source, status string, count float64) {
+	OutboxMetrics.
+		WithLabelValues(source, status).
+		Add(count)
+}
+
 func KafkaSyncProducerMetricsF(topic string, err error) {
 	KafkaSyncProducerMetrics.
 		WithLabelValues(topic, errToBoolString(err)).
 		Inc()
+}
+
+func KafkaConsumerMetricsF(topic string, err error, duration float64) {
+	KafkaConsumerMetrics.
+		WithLabelValues(topic, errToBoolString(err)).
+		Observe(duration)
 }
 
 func KafkaConsumerGroupMetricsF(groupName, topic string, err error, duration float64) {
@@ -182,6 +223,21 @@ func WithElasticMetrics(
 	var err error
 	defer func(start time.Time) {
 		ElasticMetrics.
+			WithLabelValues(requestName, errToBoolString(err)).
+			Observe(time.Since(start).Seconds())
+	}(time.Now())
+
+	err = callFunc()
+	return err
+}
+
+func WithRedisMetrics(
+	requestName string,
+	callFunc customFunc,
+) error {
+	var err error
+	defer func(start time.Time) {
+		RedisMetrics.
 			WithLabelValues(requestName, errToBoolString(err)).
 			Observe(time.Since(start).Seconds())
 	}(time.Now())

@@ -9,35 +9,34 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/nenormalka/freya"
 	"github.com/nenormalka/freya/conns/consul/client"
 	"github.com/nenormalka/freya/conns/consul/config"
 	"github.com/nenormalka/freya/conns/consul/leader"
 	"github.com/nenormalka/freya/conns/consul/lock"
 	"github.com/nenormalka/freya/conns/consul/session"
 	"github.com/nenormalka/freya/conns/consul/watcher"
-	"github.com/nenormalka/freya/types"
+	"github.com/nenormalka/melissa"
+	meltypes "github.com/nenormalka/melissa/types"
 )
 
 func main() {
-	if err := freya.NewMockEngine(
-		false,
-		freya.WithModulesOpt(types.Module{
+	if err := melissa.NewMockEngine(
+		meltypes.Module{
 			{CreateFunc: func() config.Config {
 				return config.Config{
 					Address:            "localhost:8500",
 					Scheme:             "http",
 					Token:              "",
 					ServiceName:        "test_leader",
-					SessionTTL:         "30s",
-					LeaderTTL:          20 * time.Second,
+					SessionTTL:         "20s",
+					LeaderTTL:          15 * time.Second,
 					InsecureSkipVerify: true,
 				}
 			}},
 			{CreateFunc: func() *zap.Logger {
 				return zap.NewNop()
 			}},
-		}),
+		},
 	).Run(func(cfg config.Config, logger *zap.Logger) error {
 		wg := sync.WaitGroup{}
 		wg.Add(3)

@@ -6,7 +6,8 @@ import (
 	"github.com/nenormalka/freya/conns/elastic"
 	"github.com/nenormalka/freya/conns/kafka"
 	postrgres "github.com/nenormalka/freya/conns/postgres"
-	"github.com/nenormalka/freya/types"
+	"github.com/nenormalka/freya/conns/redis"
+	"github.com/nenormalka/melissa/types"
 )
 
 var Module = types.Module{
@@ -16,4 +17,5 @@ var Module = types.Module{
 	Append(elastic.Module).
 	Append(kafka.Module).
 	Append(couchbase.Module).
-	Append(consul.Module)
+	Append(consul.Module).
+	Append(redis.Module)

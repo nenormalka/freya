@@ -2,7 +2,6 @@ package consumergroup
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -14,10 +13,6 @@ import (
 
 	"github.com/nenormalka/freya/conns/kafka/common"
 	"github.com/nenormalka/freya/types"
-)
-
-var (
-	ErrTopicExists = errors.New("topic already exists")
 )
 
 type (
@@ -109,7 +104,7 @@ func NewConsumerGroup(
 
 func (cg *ConsumerGroup) AddHandler(topic common.Topic, hm common.MessageHandler) error {
 	if _, ok := cg.handlers[topic]; ok {
-		return ErrTopicExists
+		return common.ErrTopicExists
 	}
 
 	cg.handlers[topic] = hm

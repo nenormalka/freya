@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/nenormalka/freya/conns/kafka/common"
+	"github.com/nenormalka/freya/conns/kafka/consumer"
 	"github.com/nenormalka/freya/conns/kafka/consumergroup"
 	"github.com/nenormalka/freya/conns/kafka/syncproducer"
 
@@ -23,8 +24,16 @@ type (
 		ResumeAll()
 	}
 
+	Consumer interface {
+		Consume() error
+		Close() error
+		PauseAll()
+		ResumeAll()
+		AddHandler(topic common.Topic, mh common.MessageHandler, opts ...consumer.HandlerOption) error
+	}
+
 	SyncProducer interface {
-		Send(topic string, message []byte, opts ...syncproducer.SendOptions) error
+		Send(topic common.Topic, message []byte, opts ...syncproducer.SendOptions) error
 		Close() error
 	}
 
@@ -67,6 +76,40 @@ func (k *Kafka) NewSyncProducer(opts ...syncproducer.SyncProducerOption) (SyncPr
 	return sp, nil
 }
 
+func (k *Kafka) NewConsumer(opts ...consumer.ConsumerOption) (Consumer, error) {
+	sp, err := consumer.NewConsumer(k.cfg, k.logger, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("kafka: create consumer err: %w", err)
+	}
+
+	return sp, nil
+}
+
+func AddTypedHandlerConsumer[T any](
+	c Consumer,
+	topic common.Topic,
+	f common.MessageHandlerTyped[T],
+	opts ...consumer.HandlerOption,
+) error {
+	if c == nil {
+		return common.ErrEmptyConsumer
+	}
+
+	if err := c.AddHandler(topic, func(msg json.RawMessage) error {
+		var t T
+
+		if err := json.Unmarshal(msg, &t); err != nil {
+			return fmt.Errorf("unmarshal message from topic %s err: %w", topic, err)
+		}
+
+		return f(t)
+	}, opts...); err != nil {
+		return fmt.Errorf("add handler to topic %s err: %w", topic, err)
+	}
+
+	return nil
+}
+
 func AddTypedHandler[T any](
 	cg ConsumerGroup,
 	topic common.Topic,
@@ -93,7 +136,7 @@ func AddTypedHandler[T any](
 
 func TypedSend[T any](
 	sp SyncProducer,
-	topic string,
+	topic common.Topic,
 	message T,
 	opts ...syncproducer.SendOptions,
 ) error {

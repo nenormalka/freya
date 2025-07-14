@@ -44,7 +44,7 @@ const (
 //
 // Clients should wait until `retry_delay` amount of time has passed since
 // receiving the error response before retrying.  If retrying requests also
-// fail, clients should use an exponential backoff scheme to gradually increase
+// fail, clients should use an exponential backoff proto to gradually increase
 // the delay between retries based on `retry_delay`, until either a maximum
 // number of retries have been reached or a maximum retry delay cap has been
 // reached.

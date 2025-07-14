@@ -27,7 +27,14 @@ var (
 	ErrEmptyTopics        = errors.New("err empty topics")
 	ErrEmptyHandlers      = errors.New("err empty handlers")
 	ErrSyncProducerClosed = errors.New("err sync producer closed")
+	ErrTopicExists        = errors.New("topic already exists")
+	ErrEmptyPartitions    = errors.New("err empty partitions")
+	ErrEmptyConsumer      = errors.New("err empty consumer")
 )
+
+func (t Topic) String() string {
+	return string(t)
+}
 
 func (t Topics) ToStrings() []string {
 	if len(t) == 0 {
@@ -36,7 +43,7 @@ func (t Topics) ToStrings() []string {
 
 	res := make([]string, len(t))
 	for i := range t {
-		res[i] = string(t[i])
+		res[i] = t[i].String()
 	}
 
 	return res

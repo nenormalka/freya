@@ -13,7 +13,7 @@ func NewLogger(cfg *config.Config) (*zap.Logger, error) {
 	var level zapcore.Level
 
 	if err := level.UnmarshalText([]byte(cfg.LogLevel)); err != nil {
-		return nil, fmt.Errorf("level  UnmarshalText %w", err)
+		return nil, fmt.Errorf("level UnmarshalText %w", err)
 	}
 
 	configZap := zap.NewProductionConfig()

@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 	"strings"
 
+	freyameta "github.com/nenormalka/freya/metadata"
 	"github.com/nenormalka/freya/types"
 	"github.com/nenormalka/freya/types/errors"
 
@@ -56,6 +57,13 @@ func interceptors(
 		ints = append(ints, types.ServerGRPCMetrics.UnaryServerInterceptor())
 	}
 
+	if config.WithMetadata {
+		ints = append(
+			ints,
+			copyMetadata(),
+		)
+	}
+
 	for _, customInts := range customInterceptors {
 		ints = append(ints, customInts...)
 	}
@@ -90,6 +98,30 @@ func checkErrorInterceptor() grpc.UnaryServerInterceptor {
 		}
 
 		return resp, err
+	}
+}
+
+func copyMetadata() grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+	) (
+		resp any, err error,
+	) {
+		mdIncoming, ok := metadata.FromIncomingContext(ctx)
+		if !ok {
+			return handler(ctx, req)
+		}
+
+		mdOutgoing, ok := metadata.FromOutgoingContext(ctx)
+		if !ok || len(mdOutgoing) == 0 {
+			return handler(metadata.NewOutgoingContext(ctx, mdIncoming), req)
+		}
+
+		for key, values := range mdOutgoing {
+			mdIncoming[key] = values
+		}
+
+		return handler(metadata.NewOutgoingContext(ctx, mdIncoming), req)
 	}
 }
 
@@ -150,17 +182,37 @@ func payloadLoggingInterceptor(logger *zap.Logger, config *Config) grpc.UnarySer
 	) (
 		resp any, err error,
 	) {
-		apiLogger := logger.Named("api")
-		methodFld := zap.String("grpc.method", path.Base(info.FullMethod))
+		method := path.Base(info.FullMethod)
 
-		apiLogger.Info(
-			fmt.Sprintf("unary call %s", info.FullMethod),
-			methodFld,
-			zap.String("grpc.payload", marshalPayload(req, config.LogRedactor)),
-			fieldWithTraceID(ctx),
-		)
+		ctx, freyaTraceID := freyameta.GetFreyaTraceID(ctx)
+		ctx, freyaMethodsPath := freyameta.GetFreyaMethodsPath(ctx, method)
+
+		apiLogger := logger.
+			Named("api").
+			With(
+				fieldWithTraceID(ctx),
+				zap.String("grpc.method", method),
+				zap.String(freyameta.FreyaTraceID, freyaTraceID),
+				zap.String(freyameta.FreyaMethodsPath, freyaMethodsPath),
+			)
+
+		withLogs := config.Throttler.Accept(method)
+
+		defer func() {
+			if withLogs || err != nil {
+				apiLogger.Info(
+					fmt.Sprintf("unary call %s", info.FullMethod),
+					zap.String("grpc.type", "request"),
+					zap.String("grpc.payload", marshalPayload(req, config.LogRedactor)),
+				)
+			}
+		}()
 
 		resp, err = handler(ctx, req)
+
+		if !withLogs && err == nil {
+			return
+		}
 
 		code := status.Code(err)
 		level := grpczap.DefaultCodeToLevel(code)
@@ -174,12 +226,11 @@ func payloadLoggingInterceptor(logger *zap.Logger, config *Config) grpc.UnarySer
 		apiLogger.Log(
 			level,
 			fmt.Sprintf("finished unary call with code %s", code.String()),
-			methodFld,
+			zap.String("grpc.type", "response"),
 			zap.String("grpc.code", code.String()),
 			responseField,
 			fieldWithGRPCDetailsError(err),
 			zap.Error(err),
-			fieldWithTraceID(ctx),
 		)
 
 		return
@@ -231,4 +282,16 @@ func fieldWithGRPCDetailsError(err error) zap.Field {
 	}
 
 	return zap.String(fieldName, strings.Join(messages, "\n"))
+}
+
+func streamInterceptors(
+	logger *zap.Logger,
+	tracer *apm.Tracer,
+	_ *Config,
+) []grpc.StreamServerInterceptor {
+	return []grpc.StreamServerInterceptor{
+		apmgrpc.NewStreamServerInterceptor(apmgrpc.WithTracer(tracer)),
+		grpcctxtags.StreamServerInterceptor(grpcctxtags.WithFieldExtractor(grpcctxtags.CodeGenRequestFieldExtractor)),
+		recovery.StreamServerInterceptor(recovery.WithRecoveryHandlerContext(panicInterceptor(logger))),
+	}
 }

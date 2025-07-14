@@ -4,25 +4,26 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"os"
 	"syscall"
 	"time"
 
-	"github.com/chapsuk/grace"
 	sentry2 "github.com/getsentry/sentry-go"
 	"github.com/joho/godotenv"
 	apm2 "go.elastic.co/apm/v2"
-	"go.uber.org/dig"
+	_ "go.uber.org/automaxprocs"
 	"go.uber.org/zap"
 
 	"github.com/nenormalka/freya/apm"
+	"github.com/nenormalka/freya/communication"
 	"github.com/nenormalka/freya/config"
 	"github.com/nenormalka/freya/conns"
 	"github.com/nenormalka/freya/grpc"
 	"github.com/nenormalka/freya/http"
 	"github.com/nenormalka/freya/logger"
 	"github.com/nenormalka/freya/sentry"
-	"github.com/nenormalka/freya/types"
+	"github.com/nenormalka/melissa"
+	"github.com/nenormalka/melissa/types"
 )
 
 const (
@@ -30,31 +31,12 @@ const (
 )
 
 type (
-	ServiceAdapterIn struct {
-		dig.In
-
-		Services []types.Runnable `group:"services"`
-		Servers  []types.Runnable `group:"servers"`
-	}
-
-	ServiceAdapterOut struct {
-		dig.Out
-
-		ServiceList types.ServiceList
-		ServerList  types.ServerList
-	}
-
 	Engine struct {
-		container *dig.Container
+		engine *melissa.Engine
 	}
 )
 
 var defaultModules = types.Module{
-	{CreateFunc: ServiceAdapter},
-	{CreateFunc: NewApp},
-	{CreateFunc: types.NewServicePool},
-	{CreateFunc: types.NewServerPool},
-	{CreateFunc: NewShutdownContext},
 	{CreateFunc: logger.NewLogger},
 }.
 	Append(config.Module).
@@ -62,54 +44,31 @@ var defaultModules = types.Module{
 	Append(grpc.Module).
 	Append(apm.Module).
 	Append(sentry.Module).
-	Append(conns.Module)
-
-func ServiceAdapter(in ServiceAdapterIn) ServiceAdapterOut {
-	return ServiceAdapterOut{
-		ServiceList: in.Services,
-		ServerList:  in.Servers,
-	}
-}
-
-func NewShutdownContext() context.Context {
-	return grace.ShutdownContext(context.Background())
-}
+	Append(conns.Module).
+	Append(communication.Module)
 
 func NewEngine(modules types.Module) *Engine {
-	e := &Engine{
-		container: dig.New(),
-	}
-
-	e.provide(append(defaultModules, modules...))
-
-	godotenv.Overload()
+	e := &Engine{}
+	e.engine = melissa.NewEngine(e.mainFunc(), modules.Append(defaultModules))
 
 	return e
 }
 
 func (e *Engine) Run() {
-	if err := e.container.Invoke(e.mainFunc()); err != nil {
-		log.Fatal("invoke err", err.Error())
-	}
-}
-
-func (e *Engine) provide(m types.Module) {
-	for _, c := range m {
-		if err := e.container.Provide(c.CreateFunc, c.Options...); err != nil {
-			log.Fatal("provide err ", err.Error())
-		}
-	}
+	godotenv.Overload()
+	e.engine.Run()
 }
 
 func (e *Engine) mainFunc() any {
 	return func(
 		ctx context.Context,
-		app *App,
+		app *melissa.App,
 		logger *zap.Logger,
 		tracer *apm2.Tracer,
 		conns *conns.Conns,
 		sentryHub *sentry2.Hub,
 	) {
+		var err error
 		defer func() {
 			if r := recover(); r != nil {
 				logger.Error("panic", zap.Error(fmt.Errorf("recover panic %v", r)))
@@ -117,8 +76,8 @@ func (e *Engine) mainFunc() any {
 
 			conns.Close()
 
-			if err := logger.Sync(); err != nil && !errors.Is(err, syscall.ENOTTY) && !errors.Is(err, syscall.EINVAL) {
-				logger.Error("can not stop logger", zap.Error(err))
+			if errl := logger.Sync(); errl != nil && !errors.Is(errl, syscall.ENOTTY) && !errors.Is(errl, syscall.EINVAL) {
+				logger.Error("can not stop logger", zap.Error(errl))
 			}
 
 			abortCh := make(chan struct{})
@@ -132,9 +91,12 @@ func (e *Engine) mainFunc() any {
 			sentryHub.Flush(flushTTL)
 
 			logger.Info("container stopped")
+			if err != nil {
+				os.Exit(1)
+			}
 		}()
 
-		if err := app.Run(ctx); err != nil {
+		if err = app.Run(ctx); err != nil {
 			logger.Error("failed run app", zap.Error(err))
 		}
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/nenormalka/freya/config"
-	"github.com/nenormalka/freya/types"
+	"github.com/nenormalka/melissa/types"
 
 	"go.uber.org/dig"
 )

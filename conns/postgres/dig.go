@@ -1,12 +1,10 @@
 package postrgres
 
-import (
-	"github.com/nenormalka/freya/types"
-)
+import "github.com/nenormalka/melissa/types"
 
 var Module = types.Module{
 	{CreateFunc: NewPostgresConfig},
-	{CreateFunc: NewPostgres},
+	{CreateFunc: NewSQLX},
 	{CreateFunc: NewSQLConnector},
 	{CreateFunc: NewGoQuConnector},
 	{CreateFunc: NewPGXPoolConn},

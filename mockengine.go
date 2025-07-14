@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/dig"
 
-	"github.com/nenormalka/freya/types"
+	ftypes "github.com/nenormalka/freya/types"
+	"github.com/nenormalka/melissa/types"
 )
 
 type (
@@ -29,8 +30,8 @@ func NewMockEngine(withDefaultModules bool, opts ...MockEngineOpt) *MockEngine {
 	engine := &MockEngine{
 		modules: lilith.Ternary(withDefaultModules, append(defaultModules, types.Module{
 			{
-				CreateFunc: func() (*types.AppInfo, error) {
-					return types.GetAppInfo(nil, "mock_engine", "")
+				CreateFunc: func() (*ftypes.AppInfo, error) {
+					return ftypes.GetAppInfo(nil, "mock_engine", "")
 				},
 			},
 		}...), nil),

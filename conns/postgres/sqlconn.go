@@ -2,6 +2,7 @@ package postrgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -54,15 +55,16 @@ func (s *SQLConn) CallTransaction(
 	return types.WithSQLMetrics(txName, s.appName, func() error {
 		tx, err := s.db.BeginTxx(ctx, nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed begin transaction: %w", err)
 		}
 
 		if err = callFunc(ctx, tx); err != nil {
 			if rErr := tx.Rollback(); rErr != nil {
+				err = errors.Join(err, rErr)
 				s.logger.Error(fmt.Sprintf("failed rollback transaction: %s", txName), zap.Error(rErr))
 			}
 
-			return err
+			return fmt.Errorf("failed call transaction: %w", err)
 		}
 
 		return tx.Commit()

@@ -120,6 +120,8 @@ func GetElasticConn() (*elastic.ElasticConn, error) возращает конн�
 func GetCouchbase() (*couchbase.Couchbase, error) возращает коннект к коучбейзу
 
 func GetConsul() (*consul.Consul, error) возращает коннект к консулу
+
+func GetRedis() (connectors.DBConnector[*goredis.Client, *redistypes.RedisTx], error) возращает коннект к редису
 ```
 
 Остальные методы депрекейтнуты, и категорически не советую ими пользоваться.
@@ -328,6 +330,12 @@ SyncProducer interface {
    Send(topic string, message []byte, opts ...syncproducer.SendOptions) error
    Close() error
 }
+
+Consumer interface {
+   Consume() error
+   Close() error
+   AddHandler(topic common.Topic, mh common.MessageHandler, opts ...consumer.HandlerOption) error
+}
 ```
 
 1) [consumergroup](conns%2Fkafka%2Fconsumergroup) как не странно предоставляет консьюмер группу.
@@ -362,6 +370,21 @@ func TypedSend[T any](
 ```
 
 Она будет превращать в набор байтиков за вас. Пример так же можно глянуть [тут](example%2Fservice%2Fservice.go).
+
+
+3) [consumer](conns%2Fkafka%2Fconsumer) предоставляет консьюмер. По сути это обёртка над sarama консьюмером.
+   Предоставляет методы Consume, Close и AddHandler. Для добавления хендлера к топику, можно использовать метод
+   AddHandler. Если хочется, чтобы хендлер работал с конкретным типом сообщения (а не с байтиками),
+   то можно использовать вот этот метод отсюда [kafka.go](conns%2Fkafka%2Fkafka.go):
+
+```go
+func AddTypedHandlerConsumer[T any](
+	c Consumer,
+	topic common.Topic,
+	f common.MessageHandlerTyped[T],
+	opts ...consumer.HandlerOption,
+) error
+```
 
 Чтобы получить обёртку, надо дёрнуть метод:
 
@@ -409,6 +432,14 @@ GetSQLConnByName с передачей названия нужного конн�
 
 Пример можно подсмотреть [тут](example%2Frepo%2Frepo.go).
 
+### [redis](conns%2Fredis)
+
+Просто коннект к редису. Реализует интерфейс *DBConnector*. Требуемые переменные конфига: <br>
+**REDIS_ADDRESS** - адрес редиса <br>
+**REDIS_USER** - имя пользователя <br>
+**REDIS_PASSWORD** - пароль <br>
+**REDIS_DB** - номер базы <br>
+
 ### [grpc](grpc)
 
 Тут происходит сборка grpc сервера. Переменные окружения:
@@ -418,6 +449,8 @@ GetSQLConnByName с передачей названия нужного конн�
 **GRPC_KEEPALIVE_TIMEOUT** - время для keepalive таймаута, дефолтное значение 10s<br>
 **GRPC_REGISTER_REFLECTION_SERVER** - флаг, определяющий поднимать ли рефлексию, дефолтное значение true <br>
 **ENABLE_SERVER_METRICS** - флаг, определяющий включать ли сбор метрик по запросам, дефолтное значение true <br>
+**GRPC_MAX_RECEIVE_MESSAGE_SIZE** - максимальный размер получаемого сервером сообщения, дефолтное значение 10Mb <br>
+**GRPC_MAX_SEND_MESSAGE_SIZE** - максимальный размер отправляемого сервером сообщения, дефолтное значение 10Mb <br>
 
 Теперь разберём, что за чертовщина тут происходит. Фрея позволяет указать любое количество сервисов
 grpc, которые будут висеть на одном сервере. Чтобы это сделать, требуется экспортировать экземпляр
@@ -496,7 +529,7 @@ Implementation any
     9) GaugeAppState - информация о сервисе (версия приложения, версия go, версия фреи, версия пакета прото,
        время запуска инстанса)
     10) ServerGRPCMetrics - метрика сервера grpc
-4) [runnable.go](types%2Frunnable.go) Основной интерфейс сервисов и серверов приложения на фреи.
+4) [runnable.go](https://github.com/nenormalka/melissa/blob/main/types/runnable.go) Основной интерфейс сервисов и серверов приложения на фреи.
    Имеет вид:
 
 ```go
@@ -518,7 +551,7 @@ Stop(ctx context.Context) error
 
 Вот это идеальный кандидат на становление сервисом.
 
-5) [server.go](types%2Fserver.go) Как следует из названия, это сущность сервера. Из коробки их два:
+5) [server.go](https://github.com/nenormalka/melissa/blob/main/types/server.go) Как следует из названия, это сущность сервера. Из коробки их два:
 
 * http
 * grpc
@@ -526,18 +559,9 @@ Stop(ctx context.Context) error
 Если зачем-то потребуется свой, то достаточно экспортировать структуру с тегом `group:"servers"`,
 которая реализует интерфейс *types.Runnable*. Можно глянуть на примере [grpc](grpc%2Fdig.go) сервера.
 
-6) [service.go](types%2Fservice.go) Это сущность сервиса. Ничего страшного в ней нет. Если требуется
+6) [service.go](https://github.com/nenormalka/melissa/blob/main/types/service.go) Это сущность сервиса. Ничего страшного в ней нет. Если требуется
    создать свой сервис, надо экспортировать структуру с тегом `group:"services"`, которая реализует
    интерфейс *types.Runnable*. Пример [тут](example%2Fservice%2Fdig.go).
-
-7) [types.go](types%2Ftypes.go) Здесь находятся основные типы: Provider (конструктор какого-то нашего функционала) и
-   Module (слайс Provider-ов)
-
-### [app.go](app.go)
-
-Это и есть наше приложение. Оно знает о всех зарегистрированных сервисах и серверах. Есть единственный
-метод Run, который и запускает сначала сервисы, потому сервера и ожидает сигналов в контексте. При
-получении сигнала на выключение, сначала стопает сервера, потом сервисы.
 
 ### [engine.go](engine.go)
 
@@ -545,20 +569,40 @@ Stop(ctx context.Context) error
 фреи. Здесь происходит сбор всех сервисов и серверов. При создании движка, создаётся di и
 провайдятся все дефолтные модули фреи + модули приложения. При вызове метода Run происходит инвок
 мейновой функции. Во время инвока di проверяет все зависимости в конструкторах и затем запускает mainFunc
-движка, в которой вызывается метод Run из [app.go](app.go). Когда приложение останавливается, срабатывает
+движка, в которой вызывается метод Run из [app.go](https://github.com/nenormalka/melissa/blob/main/app.go). Когда приложение останавливается, срабатывает
 defer в mainFunc. В нём происходит закрытие всех соединений, синхронизация логгера и сброс апм
 и сентри.
 
-### [mockengine.go](mockengine.go)
+### [outbox](outbox)
 
-Это мок движка. Он нужен для тестов. В нём происходит создание di и провайдятся все дефолтные модули фреи, если не
-указано обратное. Имеет три метода:
+Пакет предоставляет собой аутбокс. Аутбоксу нужны для работы два интерфейса:
 
-1) Run - запускает какую-то кастомную вашу функцию в методе Invoke di
-2) RunTest - запускает тестовую функцию, которая принимает *testing.T, название и функцию для инвока
-3) RunBenchmark - запускает бенчмарк функцию, которая принимает *testing.B, название и функцию для инвока
+```go
+	Ticker interface {
+		Start(ctx context.Context) error
+		Stop(ctx context.Context) error
+		AddJob(time string, job models.Job) error
+	}
 
-Пример можно глянуть [тут](example%2Fservice%2Fservice_test.go)
+	DataKeeper interface {
+		Init(ctx context.Context) error
+		SaveData(ctx context.Context, data *models.Data) error
+		GetData(ctx context.Context) ([]*models.Data, error)
+		UpdateFailedData(ctx context.Context, codes []string) error
+		UpdateProcessedData(ctx context.Context, codes []string) error
+		UpdateLockedData(ctx context.Context) error
+		RemoveOldData(ctx context.Context) error
+		SetFailedData(ctx context.Context) error
+	}
+```
+
+Их можно реализовать самому, можно использовать уже готовые реализации. У тикера их две, посмотреть можно тут - [ticker](ticker).
+У дата кипера одна, на основе бд постгреса. Найти её можно [тут](outbox%2Fdatakeeper). Так же аутбоксу требуется указать хэндлеры,
+которые будут обрабатывать сообщения, функцию для определения лидера и периоды срабатывания джоб. Для обычного использования хватит
+вызвать NewDefaultOutbox и добавить хендлеры и функцию для определения лидера. Каждое сообщение имеет поле source. 
+С помощью него будет определяться хендлер, который будет обрабатывать сообщение. 
+Пример использования можно посмотреть [тут](example%2Foutbox%2Foutbox.go).
+
 </p>
 
 <p>

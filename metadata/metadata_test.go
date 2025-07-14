@@ -2,6 +2,7 @@ package metadata
 
 import (
 	"context"
+	"github.com/mailru/easyjson"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -468,4 +469,88 @@ func TestGetPlatformType(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPairs(t *testing.T) {
+	key := "metadata"
+	pairs := Pairs{
+		{Key: "key1", Value: "value1"},
+		{Key: "key2", Value: "value2"},
+	}
+
+	ctx, err := AddPairsToCtx(context.Background(), key, pairs)
+	require.Nil(t, err)
+
+	md, ok := metadata.FromOutgoingContext(ctx)
+	require.True(t, ok)
+
+	data, ok := md[key]
+	require.True(t, ok)
+
+	var pairsFromCtx Pairs
+	for _, d := range data {
+		var pair Pair
+		err = easyjson.Unmarshal([]byte(d), &pair)
+		require.Nil(t, err)
+
+		pairsFromCtx = append(pairsFromCtx, pair)
+	}
+
+	require.Equal(t, pairs, pairsFromCtx)
+
+	incoming := make([]string, 0, len(pairs))
+	for _, pair := range pairs {
+		d, err := easyjson.Marshal(pair)
+		require.Nil(t, err)
+
+		incoming = append(incoming, string(d))
+	}
+
+	ctx = metadata.NewIncomingContext(context.Background(), metadata.MD{key: incoming})
+
+	pairsFromCtx, err = GetPairsFromCtx(ctx, key)
+	require.Nil(t, err)
+
+	require.Equal(t, pairs, pairsFromCtx)
+
+	pairsFromCtx, err = GetPairsFromCtxWithKey(ctx, key, "key2")
+	require.Nil(t, err)
+
+	require.Equal(t, pairs[1], pairsFromCtx[0])
+}
+
+func TestValues(t *testing.T) {
+	key := "metadata"
+	pairs := Pairs{
+		{Key: "key1", Value: "value1"},
+		{Key: "key2", Value: "value2"},
+	}
+
+	incoming := make([]string, 0, len(pairs))
+	for _, pair := range pairs {
+		d, err := easyjson.Marshal(pair)
+		require.Nil(t, err)
+
+		incoming = append(incoming, string(d))
+	}
+
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.MD{key: incoming})
+
+	value, err := GetValueFromCtx(ctx, key, "key1")
+	require.Nil(t, err)
+
+	require.Equal(t, "value1", value)
+
+	value, err = GetValueFromCtx(ctx, key, "key3")
+	require.NotNil(t, err)
+
+	value, err = GetValueFromCtxWithDefault(ctx, key, "key1", "default")
+	require.Nil(t, err)
+
+	require.Equal(t, "value1", value)
+
+	value, err = GetValueFromCtxWithDefault(ctx, key, "key3", "default")
+	require.Nil(t, err)
+
+	require.Equal(t, "default", value)
 }

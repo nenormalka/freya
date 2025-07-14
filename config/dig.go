@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/nenormalka/freya/types"
+	"github.com/nenormalka/melissa/types"
 
 	"go.uber.org/dig"
 )

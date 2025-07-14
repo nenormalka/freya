@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package proto;
+
+import "message.proto";
+
+option go_package = "./proto;proto";
+
+service Transport {
+  rpc Process(stream Message) returns (stream Message) {};
+}

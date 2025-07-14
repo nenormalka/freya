@@ -9,11 +9,14 @@ import (
 	"github.com/nenormalka/freya/conns/elastic"
 	"github.com/nenormalka/freya/conns/kafka"
 	dbtypes "github.com/nenormalka/freya/conns/postgres/types"
+	"github.com/nenormalka/freya/conns/redis"
+	redistypes "github.com/nenormalka/freya/conns/redis/types"
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/jmoiron/sqlx"
+	goredis "github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -43,6 +46,8 @@ type (
 		couchbase *couchbase.Couchbase
 		// consul абстракция над консулом
 		consul *consul.Consul
+		// redis абстракция над редисом
+		redis *redis.RedisClient
 	}
 )
 
@@ -53,6 +58,7 @@ var (
 	errEmptyKafka       = errors.New("empty kafka")
 	errEmptyConsul      = errors.New("empty consul")
 	errEmptyCouchbase   = errors.New("empty couchbase")
+	errEmptyRedis       = errors.New("empty redis")
 )
 
 func NewConns(
@@ -67,6 +73,7 @@ func NewConns(
 	kafka *kafka.Kafka,
 	couchbase *couchbase.Couchbase,
 	consul *consul.Consul,
+	redis *redis.RedisClient,
 ) *Conns {
 	return &Conns{
 		logger:      logger,
@@ -80,6 +87,7 @@ func NewConns(
 		kafka:       kafka,
 		couchbase:   couchbase,
 		consul:      consul,
+		redis:       redis,
 	}
 }
 
@@ -153,6 +161,15 @@ func (c *Conns) GetCouchbase() (*couchbase.Couchbase, error) {
 	return c.couchbase, nil
 }
 
+// GetRedis возвращает абстракцию над редисом
+func (c *Conns) GetRedis() (connectors.DBConnector[*goredis.Client, *redistypes.RedisTx], error) {
+	if c.redis == nil {
+		return nil, errEmptyRedis
+	}
+
+	return c.redis, nil
+}
+
 func (c *Conns) Close() {
 	c.logger.Info("stopping connections")
 
@@ -169,6 +186,12 @@ func (c *Conns) Close() {
 		c.logger.Info("stop pgx connections")
 		for i := range c.pgxPoolDB {
 			c.pgxPoolDB[i].Close()
+		}
+	}
+
+	if c.redis != nil {
+		if err := c.redis.Close(); err != nil {
+			c.logger.Error("redis stopping err", zap.Error(err))
 		}
 	}
 

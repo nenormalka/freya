@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "./proto;proto";
+
+message Message {
+  string type = 1;
+  string message_code = 2;
+  string client_code = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  bytes payload = 5;
+}
+
+enum ServiceMessageType {
+  SERVICE_MESSAGE_TYPE_UNSPECIFIED = 0;
+  SERVICE_MESSAGE_TYPE_HANDSHAKE = 1;
+}
